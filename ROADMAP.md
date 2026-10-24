@@ -2,23 +2,27 @@
 
 Cette roadmap découpe le logiciel final en phases vérifiables. Ce n'est pas une réduction du périmètre : toutes les fonctionnalités de `SPEC.md` restent dans la cible. Une phase ne doit être cochée qu'après vérification réelle.
 
+Légende : `[x]` vérifié par un test exécuté (résultat dans `DEV_LOG.md`) · `[~]` code livré et testé en simulation ou sur serveur local, **validation réelle (Windows, réseau, matériel) en attente** · `[ ]` non fait.
+
 ## Phase 0 — Cadrage, dépôt et preuves de faisabilité
-- [ ] Lire `SPEC.md` v0.4 et intégrer `docs/branding/aniflow-logo-final.png` dans l’application.
-- [ ] Créer un dépôt GitHub privé et committer le kit de planification.
-- [ ] Valider une recherche AniList GraphQL.
-- [ ] Prototyper MPV/libmpv : lecture, pause, seek, position de reprise sous Windows.
-- [ ] Valider Ollama local + appels au modèle Gemma choisi ; aucun endpoint IA distant.
-- [ ] Confirmer les dépendances, licences et choix de distribution.
+- [x] Lire `SPEC.md` v0.4.
+- [~] Intégrer `docs/branding/aniflow-logo-final.png` dans l'application — chargeur (`aniflow.paths.logo_path`) et fenêtre de contrôle `qt_smoke.py` livrés ; affichage réel du PNG non vérifié (fichier et PySide6 absents de l'environnement de développement).
+- [~] Dépôt GitHub privé et kit de planification — dépôt indiqué par l'utilisateur ; contenu/visibilité non vérifiables ici ; le code de la phase 0 est livré en archive à appliquer et committer.
+- [~] Valider une recherche AniList GraphQL — client, limiteur, cache, erreurs et `anilist_probe.py` livrés (29 tests, dont 6 sur serveur HTTP local avec le vrai transport) ; **appel réel à AniList non testé** (réseau coupé).
+- [~] Prototyper MPV/libmpv : lecture, pause, seek, position de reprise — logique de sonde testée avec un faux lecteur, `mpv_probe.py` et `qt_smoke.py` livrés ; **libmpv réel et Windows non testés**.
+- [~] Valider Ollama local + appels au modèle Gemma choisi ; aucun endpoint IA distant — client à garde-fous (22 tests contre un faux Ollama local) et `ollama_probe.py` livrés ; **Ollama/Gemma réels non testés**.
+- [~] Confirmer les dépendances, licences et choix de distribution — recensement sourcé dans `DECISIONS.md` ; choix de distribution (GPL ou LGPL) volontairement ouvert jusqu'à toute diffusion.
 
 ## Phase 1 — Socle applicatif et design
-- [ ] Structure Python/PySide6 modulaire, navigation et thème bleu marine sombre.
-- [ ] Design tokens, typographie, cartes, composants, icônes et états de chargement/erreur.
-- [ ] Configuration, journaux et erreurs compréhensibles.
-- [ ] SQLite, migrations, persistance et sauvegarde/restauration.
-- [ ] Tests ciblés de démarrage, navigation et persistance.
+- [~] Structure Python/PySide6 modulaire, navigation et thème bleu marine sombre — paquet `src/aniflow`, jetons de design et feuille de style Qt livrés (contrastes WCAG testés) ; fenêtre principale et navigation non faites.
+- [~] Design tokens, typographie, cartes, composants, icônes et états de chargement/erreur — jetons, typographie et styles de base faits ; composants, icônes et états non faits.
+- [x] Configuration, journaux et erreurs compréhensibles — `SettingsStore` validé (IA locale imposée dès la configuration), journal tournant, erreurs françaises par service.
+- [x] SQLite, migrations, persistance et sauvegarde/restauration — migrations atomiques avec sauvegarde préalable, restauration vérifiée avec copie de sécurité, cache HTTP persistant (19 tests).
+- [~] Tests ciblés de démarrage, navigation et persistance — persistance testée ; démarrage et navigation de l'interface non faits.
 
 ## Phase 2 — Recherche, métadonnées et chronologie
-- [ ] Recherche et fiches AniList avec cache.
+- [ ] Recherche et fiches AniList avec cache. *(client et cache prêts ; reste l'intégration à l'interface et la persistance des œuvres)*
+  - Note de conception vérifiée : l'API est limitée à 30 requêtes/min ; explorer les relations par lots `id_in` (50 fiches/requête) et mettre en cache, sans collecte massive (CGU).
 - [ ] Explorer récursivement les relations entre œuvres et consulter d'autres sources identifiées si nécessaire.
 - [ ] Construire la liste par éléments individuels (épisodes) et unités (films, OVA, spéciaux).
 - [ ] Le mode par défaut inclut tous les contenus connus, dont les récapitulatifs.

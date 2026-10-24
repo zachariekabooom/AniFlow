@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aniflow"
+version = "0.0.1"
+description = "AniFlow — bibliothèque personnelle d'animés pour Windows 11"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []  # les services réseau, la base et l'IA locale n'utilisent que la bibliothèque standard
+
+[project.optional-dependencies]
+ui = ["PySide6>=6.7"]        # Qt for Python — LGPLv3 (voir DECISIONS.md avant toute distribution)
+player = ["mpv>=1.0.8"]      # python-mpv (module « mpv ») ; nécessite libmpv-2.dll (voir docs/phase0)
+dev = ["pytest>=8"]          # facultatif : les tests tournent aussi avec « python -m unittest »
+all = ["aniflow[ui,player]"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

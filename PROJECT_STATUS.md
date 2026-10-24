@@ -2,35 +2,36 @@
 
 > Fiche de reprise prioritaire. La maintenir courte, factuelle et à jour. Ne jamais en faire un résumé intégral de conversation.
 
-- **Spécification :** `SPEC.md` v0.4
-- **État :** cadrage finalisé, développement non commencé
-- **Code applicatif :** aucun
-- **Branche / commit stable :** dépôt GitHub à créer
-- **Tests applicatifs :** aucun, car aucun code applicatif n'existe
-- **Logo approuvé :** `docs/branding/aniflow-logo-final.png`
-- **Prochaine action :** créer le dépôt GitHub selon `GITHUB_SETUP.md`, y déposer le kit, puis lancer `CLAUDE_MASTER_PROMPT.md` dans l'environnement Claude choisi.
+- **Spécification :** `SPEC.md` v0.4 (inchangée)
+- **État :** phase 0 — code et sondes livrés, **validation sous Windows en attente** ; phase 1 — socle non graphique fait (SQLite, migrations, sauvegarde, paramètres, journaux, thème), interface non commencée
+- **Code applicatif :** `src/aniflow/` (clients AniList et Ollama local, base SQLite, thème, sonde libmpv), sondes dans `tools/phase0/`, procédure dans `docs/phase0/validation-windows.md`
+- **Dépôt :** https://github.com/zachariekabooom/AniFlow — non lisible depuis l'environnement de développement (robots.txt) ; **aucun accès en écriture** : le code est livré dans `aniflow-phase0.zip`, à extraire à la racine du dépôt puis à committer
+- **Dernier commit stable :** aucun (rien n'a été poussé)
+- **Tests :** 113 tests `unittest` passent (`python -m unittest discover -s tests -t .`), sans Internet ni PySide6
+- **Non testé :** AniList réel, libmpv et lecture sous Windows, Qt/PySide6 et affichage du logo, Ollama et Gemma réels
+- **Logo approuvé :** `docs/branding/aniflow-logo-final.png` (non vu par le développement : absent de l'environnement)
+- **Prochaine action unique :** suivre `docs/phase0/validation-windows.md` (étapes 1 à 5) et renvoyer les rapports JSON de `reports/` ; la phase 0 ne sera cochée qu'après leur lecture.
 
 ## Décisions confirmées
 
 - Windows 11, interface en français, design sombre moderne et minimaliste bleu marine très foncé avec accent bleu électrique.
 - Logo final approuvé : torii blanc + livre/bibliothèque + bouton lecture bleu.
-- AniList GraphQL pour la recherche et les métadonnées initiales, avec architecture extensible.
-- Mode par défaut « Chronologie complète » incluant tous les contenus découverts, y compris récapitulatifs. Un glisser-déposer permet de réorganiser saisons, épisodes, films, OVA, spéciaux et récapitulatifs.
-- Bibliothèque pour les animés en cours et déjà vus, avec ajout manuel des œuvres/fichiers, progression et compteur de re-visionnages extensible.
-- Lecteur local intégré, reprise de progression, commandes ±15 s, chronomètre excluant les pauses et sauts de progression non réellement regardée.
-- Gestionnaire de téléchargement persistant, dossiers et stockage configurables, reprise après redémarrage lorsque la source le permet, choix des saisons/épisodes/langues/qualités réellement disponibles.
-- URL de source ou fichier local ajoutables manuellement ; les pages web arbitraires peuvent nécessiter un adaptateur compatible. Aucun contournement de DRM ou de contrôle d'accès.
-- Toute fonction qui utilise de l'IA doit utiliser exclusivement une IA locale, via Ollama au départ. Aucun endpoint cloud/fallback distant. Si le modèle manque, afficher une erreur claire sans simulation ni bascule distante.
-- Les statistiques doivent distinguer le temps mesuré par AniFlow des estimations historiques.
-- L'application complète est construite en phases vers les exigences intégrales de `SPEC.md`, sans s'arrêter à un prototype jetable.
+- AniList GraphQL pour la recherche et les métadonnées initiales, architecture extensible. Limite à respecter : 30 requêtes/min (mode dégradé documenté) → lectures par lots et cache.
+- Mode par défaut « Chronologie complète » incluant tous les contenus découverts, y compris récapitulatifs ; glisser-déposer pour réorganiser.
+- Bibliothèque, lecteur local intégré (±15 s, reprise, chronomètre excluant pauses et sauts), gestionnaire de téléchargement persistant, statistiques distinguant mesuré et estimé — inchangés (voir `SPEC.md`).
+- URL de source ou fichier local ajoutables manuellement ; aucun contournement de DRM ou de contrôle d'accès.
+- IA exclusivement locale (Ollama d'abord) : adresse de bouclage seulement, **modèles Ollama « cloud » refusés**, aucun repli distant, aucune modalité envoyée sans capacité annoncée, aucun téléchargement de modèle automatique.
+- Le logiciel complet est construit par phases vérifiables, sans s'arrêter à un prototype jetable.
+- Tests en `unittest` (aucune dépendance) ; `.gitignore` corrigé : motifs ancrés à la racine.
 
 ## Risques techniques à vérifier au cours du développement
 
 - Exhaustivité et fiabilité des chronologies : aucune base unique ne garantit zéro oubli ; conserver les contenus incertains et autoriser leur correction.
-- Compatibilité des URL de téléchargement : utiliser des sources accessibles et autorisées, des liens directs ou des adaptateurs dont la licence/maintenance a été vérifiée.
-- Dépendances MPV/FFmpeg, empaquetage Windows et licences : les valider tôt.
-- Capacités IA réelles : vérifier les modalités supportées par le couple exact Ollama/modèle. Ne pas envoyer audio/vidéo à un modèle qui ne sait pas les prendre en entrée.
-- Machine cible à considérer pour les performances : Windows 11, 16 Go de RAM, MSI Thin GF63 12UCX et RTX 2050 déclarés par l'utilisateur ; mesurer plutôt que supposer.
+- Compatibilité des URL de téléchargement : sources autorisées, liens directs ou adaptateurs à licence et maintenance vérifiées.
+- libmpv sous Windows : DLL non officielle (GPL par défaut), recherche de DLL par ctypes, locale Qt — **à prouver par la sonde** ; licences et empaquetage à trancher avant toute diffusion.
+- IA : audio Gemma 4 limité à 30 s par entrée et exposition par Ollama non prouvée pour chaque tag ; mémoire du GPU portable probablement serrée (≈ 4 Go à confirmer) → mesurer E2B, E4B puis 12B.
+- CGU AniList : pas de miroir de la base, pas de diffusion publique avant d'avoir clarifié la clause « services concurrents ».
+- Machine cible : Windows 11, 16 Go de RAM, MSI Thin GF63 12UCX, RTX 2050 (déclaré par l'utilisateur) ; mesurer plutôt que supposer.
 
 ## Protocole anti-perte de contexte et anti-gaspillage de tokens
 

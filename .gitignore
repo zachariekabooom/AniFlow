@@ -1,0 +1,51 @@
+# Environnements et caches Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Journaux, bases personnelles et fichiers temporaires
+*.log
+/logs/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.part
+*.tmp
+
+# Modèles IA, médias et téléchargements.
+# Motifs ANCRÉS à la racine : sous Windows Git ignore la casse, donc « Downloads/ » non ancré
+# ignorerait aussi src/aniflow/services/downloads/ (et « models/ », « media/ » tout dossier du code).
+*.gguf
+*.safetensors
+/models/
+/media/
+/Videos/
+/Downloads/
+/cache/
+
+# Composants binaires tiers (libmpv, FFmpeg…) et rapports locaux des sondes de la phase 0
+/third_party/*
+!/third_party/README.md
+/reports/*
+!/reports/README.md
+
+# Paquets générés (les fichiers .spec de PyInstaller seront versionnés en phase 7)
+dist/
+build/
+
+# Système
+.DS_Store
+Thumbs.db
