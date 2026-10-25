@@ -1,5 +1,7 @@
+import ipaddress
 import json
 import unittest
+from unittest import mock
 
 from aniflow.net.local_only import validate_local_base_url
 from aniflow.net.transport import UrllibTransport
@@ -85,6 +87,56 @@ class LocalOnlyUrlTests(unittest.TestCase):
         self.assertEqual(validate_local_base_url("http://127.0.0.5:8000"), "http://127.0.0.5:8000")
         self.assertEqual(validate_local_base_url("http://[::1]:11434"), "http://[::1]:11434")
         self.assertEqual(OllamaClient("http://127.0.0.1:11434", transport=ExplodingTransport()).base_url, "http://127.0.0.1:11434")
+
+
+class AlternativeIpRepresentationTests(unittest.TestCase):
+    """Autres écritures d'une adresse locale : refusées quelle que soit la version de Python."""
+
+    REFUSED = (
+        # IPv4-mappées, IPv4-compatibles, NAT64, 6to4, adresse non spécifiée, zone IPv6, IPv4 entre crochets
+        "http://[::ffff:127.0.0.1]:11434", "http://[::ffff:7f00:1]:11434", "http://[0:0:0:0:0:ffff:127.0.0.1]:11434",
+        "http://[::127.0.0.1]:11434", "http://[::7f00:1]:11434", "http://[64:ff9b::127.0.0.1]:11434", "http://[2002:7f00:1::]:11434",
+        "http://[::]:11434", "http://[::1%25lo]:11434", "http://[::1%lo]:11434", "http://[127.0.0.1]:11434",
+        # écritures décimale, hexadécimale, octale ou abrégée de 127.0.0.1
+        "http://2130706433:11434", "http://0x7f000001:11434", "http://0177.0.0.1:11434", "http://017700000001:11434",
+        "http://0x7f.0.0.1:11434", "http://127.1:11434", "http://127.0.1:11434", "http://127.000.000.001:11434", "http://0:11434",
+        # point final, chiffres pleine chasse, noms qui pointent vers 127.0.0.1 (résolution DNS non maîtrisée)
+        "http://127.0.0.1.:11434", "http://localhost.:11434", "http://１２７.０.０.１:11434", "http://localtest.me:11434", "http://127.0.0.1.nip.io:11434",
+    )
+
+    def test_refused_without_any_network_call(self):
+        for url in self.REFUSED:
+            with self.subTest(url=url), self.assertRaises(AINotLocalError):
+                OllamaClient(url, transport=ExplodingTransport())
+
+    def test_canonical_forms_are_accepted_and_the_client_connects_to_the_canonical_form(self):
+        cases = {
+            "http://[0:0:0:0:0:0:0:1]:11434": "http://[::1]:11434",
+            "HTTP://LOCALHOST:11434/": "http://localhost:11434",
+            "http://127.0.0.1": "http://127.0.0.1",
+            "https://127.255.255.254:8443": "https://127.255.255.254:8443",
+        }
+        for given, expected in cases.items():
+            with self.subTest(given=given):
+                self.assertEqual(validate_local_base_url(given), expected)
+                self.assertEqual(OllamaClient(given, transport=ExplodingTransport()).base_url, expected)
+
+    def test_verdict_does_not_depend_on_the_ipaddress_loopback_semantics(self):
+        """CPython récent (observé en 3.12.10) : ::ffff:127.0.0.1.is_loopback vaut True ; en 3.12.3 il vaut False.
+
+        On simule ici la sémantique récente pour que le test échoue de la même façon sur n'importe quelle version.
+        """
+        original = ipaddress.IPv6Address.is_loopback
+
+        def recent(self):
+            mapped = self.ipv4_mapped
+            return original.fget(self) or (mapped is not None and mapped.is_loopback)
+
+        with mock.patch.object(ipaddress.IPv6Address, "is_loopback", property(recent)):
+            self.assertTrue(ipaddress.ip_address("::ffff:127.0.0.1").is_loopback)  # précondition : la simulation est active
+            for url in ("http://[::ffff:127.0.0.1]:11434", "http://[::ffff:7f00:1]:11434", "http://[0:0:0:0:0:ffff:127.0.0.1]:11434"):
+                with self.subTest(url=url), self.assertRaises(AINotLocalError):
+                    OllamaClient(url, transport=ExplodingTransport())
 
 
 class CloudModelGuardTests(unittest.TestCase):

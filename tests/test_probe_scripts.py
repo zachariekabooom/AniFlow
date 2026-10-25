@@ -2,11 +2,13 @@
 
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from dataclasses import dataclass
 from pathlib import Path
 
 from tests.support import fixtures
@@ -17,8 +19,33 @@ ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "tools" / "phase0"
 
 
+# Sous Windows, un tube hérite de la page de code ANSI (cp1252 en français), pas de l'UTF-8. On simule cette console
+# pour TOUS les sous-processus, sur n'importe quel système : chaque test vérifie donc aussi l'encodage de sortie.
+CONSOLE_ENV = {**os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+
+
+@dataclass
+class ScriptResult:
+    returncode: int
+    stdout: str
+    stderr: str
+
+
+def _decode_utf8(script, stream, data):
+    """Décodage strict dans le thread du test : une sortie non UTF-8 fait ÉCHOUER le test (avec contexte)."""
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        around = data[max(0, exc.start - 20) : exc.end + 20]
+        raise AssertionError(
+            f"{script} : {stream} n'est pas de l'UTF-8 valide ({exc.reason}, octet {data[exc.start]:#04x} à la position "
+            f"{exc.start}) ; contexte : {around!r}. Le script doit forcer la sortie UTF-8 (voir tools/phase0/_common.py)."
+        ) from None
+
+
 def run_script(name, *args, timeout=90):
-    return subprocess.run([sys.executable, str(TOOLS / name), *args], capture_output=True, text=True, encoding="utf-8", timeout=timeout, cwd=ROOT)
+    done = subprocess.run([sys.executable, str(TOOLS / name), *args], capture_output=True, timeout=timeout, cwd=ROOT, env=CONSOLE_ENV)
+    return ScriptResult(done.returncode, _decode_utf8(name, "stdout", done.stdout), _decode_utf8(name, "stderr", done.stderr))
 
 
 def anilist_router(request):
@@ -81,6 +108,32 @@ class OllamaProbeScript(unittest.TestCase):
         self.assertNotIn("/api/show", [r.path for r in server.requests])
 
 
+class ConsoleEncodingTests(unittest.TestCase):
+    """Chaque script de tools/phase0 émet de l'UTF-8 valide même si la console du système est en cp1252."""
+
+    # script -> (arguments d'un parcours rapide sans dépendance externe, code de retour attendu, fragment accentué attendu)
+    QUICK_PATHS = {
+        "anilist_probe.py": (("--endpoint", "http://127.0.0.1:9"), 1, "Vérifiez"),
+        "make_test_media.py": (("--ffmpeg", "ffmpeg-inexistant-xyz"), 2, "précisez"),
+        "mpv_probe.py": (("--file", "x.mp4", "--dll-dir", "dossier-absent"), 2, "Créez-le"),
+        "ollama_probe.py": (("--url", "http://example.com:11434"), 1, "IA locale"),
+        "qt_smoke.py": (("--dll-dir", "dossier-absent"), 2, "Créez-le"),
+    }
+
+    def test_every_script_has_a_quick_path(self):
+        scripts = {p.name for p in TOOLS.glob("*.py") if not p.name.startswith("_")}
+        self.assertEqual(scripts, set(self.QUICK_PATHS), "nouveau script dans tools/phase0 : ajoutez-le à QUICK_PATHS")
+
+    def test_french_output_is_valid_utf8_with_a_cp1252_console(self):
+        for name, (args, code, fragment) in self.QUICK_PATHS.items():
+            with self.subTest(script=name):
+                result = run_script(name, *args)  # lève AssertionError si une sortie n'est pas de l'UTF-8
+                text = result.stdout + result.stderr
+                self.assertEqual(result.returncode, code, text)
+                self.assertIn(fragment, text)
+                self.assertTrue(any(ord(c) > 127 for c in text), "ce parcours doit produire des accents, sinon il ne prouve rien")
+
+
 class MediaAndPlayerScripts(unittest.TestCase):
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "FFmpeg absent")
     def test_make_test_media_creates_a_playable_synthetic_video(self):
@@ -88,8 +141,9 @@ class MediaAndPlayerScripts(unittest.TestCase):
             out = Path(tmp) / "t.mp4"
             result = run_script("make_test_media.py", "--out", str(out), "--seconds", "3")
             self.assertEqual(result.returncode, 0, result.stderr)
-            probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type:format=duration", "-of", "json", str(out)], capture_output=True, text=True)
-            info = json.loads(probe.stdout)
+            self.assertIn("Vidéo de test créée", result.stdout)  # message accentué : prouve l'UTF-8 de bout en bout
+            probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type:format=duration", "-of", "json", str(out)], capture_output=True)
+            info = json.loads(probe.stdout.decode("utf-8"))
             self.assertAlmostEqual(float(info["format"]["duration"]), 3.0, delta=0.6)
             self.assertEqual({s["codec_type"] for s in info["streams"]}, {"video", "audio"})
             self.assertLess(out.stat().st_size, 300_000)

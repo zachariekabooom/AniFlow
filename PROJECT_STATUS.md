@@ -3,14 +3,14 @@
 > Fiche de reprise prioritaire. La maintenir courte, factuelle et à jour. Ne jamais en faire un résumé intégral de conversation.
 
 - **Spécification :** `SPEC.md` v0.4 (inchangée)
-- **État :** phase 0 — code et sondes livrés, **validation sous Windows en attente** ; phase 1 — socle non graphique fait (SQLite, migrations, sauvegarde, paramètres, journaux, thème), interface non commencée
+- **État :** phase 0 — code et sondes livrés (v1 + correctifs 1) ; la suite de tests a été exécutée une première fois sous Windows par l'utilisateur (113 tests : 1 échec, 2 ignorés, 2 erreurs de threads de test), causes corrigées, **à re-vérifier sous Windows** ; validation AniList / libmpv / Qt / Ollama toujours en attente ; phase 1 — socle non graphique fait, interface non commencée
 - **Code applicatif :** `src/aniflow/` (clients AniList et Ollama local, base SQLite, thème, sonde libmpv), sondes dans `tools/phase0/`, procédure dans `docs/phase0/validation-windows.md`
 - **Dépôt :** https://github.com/zachariekabooom/AniFlow — non lisible depuis l'environnement de développement (robots.txt) ; **aucun accès en écriture** : le code est livré dans `aniflow-phase0.zip`, à extraire à la racine du dépôt puis à committer
 - **Dernier commit stable :** aucun (rien n'a été poussé)
-- **Tests :** 113 tests `unittest` passent (`python -m unittest discover -s tests -t .`), sans Internet ni PySide6
-- **Non testé :** AniList réel, libmpv et lecture sous Windows, Qt/PySide6 et affichage du logo, Ollama et Gemma réels
+- **Tests :** 123 tests `unittest` passent dans l'environnement de développement (Linux, Python 3.12.3 ; `python -m unittest discover -s tests -t .`), sans Internet ni PySide6. Sous Windows 11 / Python 3.12.10 (retour utilisateur, version précédente) : 113 exécutés, 1 échec (adresse IPv4-mappée acceptée), 2 ignorés — **non re-vérifié depuis les correctifs**
+- **Non testé :** AniList réel, libmpv et lecture sous Windows, rendu Qt/PySide6 et logo, Ollama et Gemma réels ; correctifs 1 sous Windows (simulés seulement : sémantique `ipaddress` récente, console cp1252, WinError 10053)
 - **Logo approuvé :** `docs/branding/aniflow-logo-final.png` (non vu par le développement : absent de l'environnement)
-- **Prochaine action unique :** suivre `docs/phase0/validation-windows.md` (étapes 1 à 5) et renvoyer les rapports JSON de `reports/` ; la phase 0 ne sera cochée qu'après leur lecture.
+- **Prochaine action unique :** appliquer `aniflow-phase0-fix1.zip`, relancer `python -m unittest discover -s tests -t .` sur Windows et renvoyer la sortie complète (attendu : `OK`, aucun « Exception in thread » ni trace). Ensuite seulement : étapes 2 à 5 de `docs/phase0/validation-windows.md`.
 
 ## Décisions confirmées
 

@@ -27,8 +27,12 @@ pip install -e ".[ui,player]"
 python -m unittest discover -s tests -t .
 ```
 
-Attendu : `OK` (quelques tests peuvent être « skipped » : ceux qui supposent l'absence de PySide6 ou de python-mpv,
-ou de FFmpeg). Si `OK` n'apparaît pas, copiez la sortie complète.
+Attendu : `Ran N tests … OK` (N = 123 avec les correctifs 1), éventuellement avec `skipped=2` : les deux tests
+« module absent » de python-mpv et de PySide6 sont ignorés quand ces modules sont installés. **Aucune** trace
+`Exception in thread` ni `Exception occurred during processing` ne doit apparaître. Sinon, copiez la sortie complète.
+
+Pour appliquer un correctif ultérieur (archive incrémentale), même commande à la racine du dépôt :
+`Expand-Archive -Path $HOME\Downloads\aniflow-phase0-fix1.zip -DestinationPath . -Force`, puis relancer les tests.
 
 > `.gitignore` est remplacé par une version corrigée (voir `DECISIONS.md`). Le dossier `.venv/` reste ignoré.
 
@@ -85,3 +89,7 @@ thinking), le débit en jetons/s et la mémoire GPU utilisée (`mémoire_en_cour
 Collez le contenu de `reports\anilist.json`, `mpv-headless.json`, `mpv-window.json`, `qt.json` et
 `ollama-*.json`, plus la sortie de l'étape 1, et dites ce que vous avez vu à l'écran (logo, vidéo, boutons).
 Les rapports contiennent la version de Windows/Python et des chemins locaux : relisez-les avant de les partager.
+
+> Accents mal affichés dans la console (PowerShell 5, invite de commandes) : c'est l'affichage, pas les données.
+> Les scripts écrivent en UTF-8 ; ouvrez les fichiers `reports\*.json` avec VS Code ou `Get-Content -Encoding UTF8`,
+> ou lancez `chcp 65001` avant les commandes.

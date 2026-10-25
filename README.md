@@ -4,7 +4,7 @@
 
 AniFlow est une application de bureau Windows 11 destinée à rechercher des animés, construire et personnaliser leur chronologie complète, organiser une bibliothèque personnelle, lire des fichiers locaux, gérer les téléchargements compatibles et présenter des statistiques détaillées.
 
-**État actuel :** phase 0 en cours — socle applicatif et sondes de faisabilité livrés (113 tests automatisés passants en local) ; validation sous Windows (réseau réel, libmpv, Ollama) en attente. Voir `PROJECT_STATUS.md`.
+**État actuel :** phase 0 en cours — socle applicatif et sondes de faisabilité livrés (123 tests automatisés passants dans l'environnement de développement) ; validation sous Windows (réseau réel, libmpv, Ollama) en attente. Voir `PROJECT_STATUS.md`.
 
 ## Source de vérité du projet
 

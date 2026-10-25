@@ -11,9 +11,20 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-for _stream in (sys.stdout, sys.stderr):  # accents et symboles corrects même hors console UTF-8
-    if hasattr(_stream, "reconfigure"):
-        _stream.reconfigure(encoding="utf-8", errors="replace")
+def force_utf8_output() -> None:
+    """Impose l'UTF-8 sur stdout/stderr, quelle que soit la page de code de la console.
+
+    Sous Windows un tube (redirection, sous-processus) hérite de la page de code ANSI (cp1252 en français) :
+    sans cela « Vidéo créée » sort en 0xE9 et tout lecteur UTF-8 échoue. stdout reste strict (une erreur
+    d'encodage doit se voir) ; stderr utilise backslashreplace pour qu'un diagnostic ne plante jamais.
+    """
+    for stream, errors in ((sys.stdout, "strict"), (sys.stderr, "backslashreplace")):
+        reconfigure = getattr(stream, "reconfigure", None)  # absent si la sortie est None (pythonw) ou remplacée
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors=errors)
+
+
+force_utf8_output()  # effet voulu à l'import : tout script qui importe _common émet de l'UTF-8
 
 
 def environment() -> dict[str, Any]:

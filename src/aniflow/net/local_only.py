@@ -22,35 +22,56 @@ class NotLocalError(ValueError):
         self.user_message = user_message
 
 
-def _is_loopback_host(host: str) -> bool:
+_IPV4_LOOPBACK = ipaddress.ip_network("127.0.0.0/8")
+_IPV6_LOOPBACK = ipaddress.IPv6Address("::1")
+
+
+def _canonical_loopback_host(host: str) -> str | None:
+    """Forme canonique d'un hôte de bouclage, ou None si l'hôte n'en est pas un.
+
+    Liste blanche explicite, jamais ipaddress.is_loopback : sa sémantique pour les adresses IPv4-mappées
+    (::ffff:127.0.0.1) a changé entre correctifs de CPython (False en 3.12.3, True en 3.12.10). Sont acceptés :
+    le nom « localhost », une IPv4 en notation décimale pointée stricte dans 127.0.0.0/8, et ::1. Tout le reste
+    est refusé : IPv4-mappée ou compatible, NAT64/6to4, zone IPv6, écritures décimale/hexadécimale/octale/abrégée,
+    point final et noms DNS (dont la résolution échappe à AniFlow). Le client se connecte à la forme renvoyée ici.
+    """
     if host == "localhost":
-        return True
+        return host
+    if "%" in host:  # zone IPv6 (::1%lo)
+        return None
     try:
-        return ipaddress.ip_address(host).is_loopback
+        v4 = ipaddress.IPv4Address(host)
     except ValueError:
-        return False
+        pass
+    else:
+        return str(v4) if v4 in _IPV4_LOOPBACK else None
+    try:
+        v6 = ipaddress.IPv6Address(host)
+    except ValueError:
+        return None
+    return str(v6) if v6 == _IPV6_LOOPBACK else None
 
 
 def validate_local_base_url(url: str) -> str:
-    """Retourne l'URL normalisée (sans « / » final) ou lève NotLocalError si elle n'est pas locale."""
+    """Retourne l'URL canonique (sans « / » final) ou lève NotLocalError si elle n'est pas strictement locale."""
     refus = (
         "AniFlow n'utilise que l'IA locale : l'adresse du service IA doit être "
         "http://127.0.0.1 (ou localhost). Corrigez-la dans Paramètres > IA locale."
     )
     if not isinstance(url, str) or not url.strip():
         raise NotLocalError("adresse vide", refus)
-    parts = urllib.parse.urlsplit(url.strip())
+    try:
+        parts = urllib.parse.urlsplit(url.strip())
+        port = parts.port
+    except ValueError as exc:  # crochets invalides, IPv4 entre crochets, port hors limites…
+        raise NotLocalError(f"adresse invalide : {exc}", refus) from exc
     if parts.scheme not in ("http", "https"):
         raise NotLocalError(f"schéma refusé : {parts.scheme!r}", refus)
     if parts.username or parts.password or parts.query or parts.fragment or parts.path not in ("", "/"):
         raise NotLocalError("l'adresse ne doit contenir que l'hôte et le port", refus)
-    host = (parts.hostname or "").rstrip(".").lower()
-    if not _is_loopback_host(host):
-        raise NotLocalError(f"hôte non local refusé : {host!r}", refus)
-    try:
-        port = parts.port
-    except ValueError as exc:
-        raise NotLocalError("port invalide", refus) from exc
+    host = _canonical_loopback_host(parts.hostname or "")
+    if host is None or ("[" in parts.netloc) != (":" in host):  # les crochets n'entourent que de l'IPv6
+        raise NotLocalError(f"hôte non local refusé : {parts.hostname!r}", refus)
     netloc = f"[{host}]" if ":" in host else host
     if port is not None:
         netloc += f":{port}"

@@ -267,12 +267,13 @@ class RealTransportTests(unittest.TestCase):
         self.assertNotIsInstance(ctx.exception, AniListTimeoutError)
 
     def test_slow_server_times_out(self):
-        with FakeHttpServer(scripted(FakeResponse(200, fixtures.search_response([1]), delay=1.0))) as server:
+        # Le client coupe volontairement la connexion : le serveur de test tolère (et compte) cette déconnexion.
+        with FakeHttpServer(scripted(FakeResponse(200, fixtures.search_response([1]), delay=0.6)), tolerate_client_abort=True) as server:
             with self.assertRaises(AniListTimeoutError):
                 self.client_for(server, timeout=0.2).search_anime("x")
 
     def test_oversized_response_is_refused(self):
-        with FakeHttpServer(scripted(FakeResponse(200, b"x" * 5000))) as server:
+        with FakeHttpServer(scripted(FakeResponse(200, b"x" * 5000)), tolerate_client_abort=True) as server:  # le client abandonne
             client = AniListClient(UrllibTransport(use_system_proxy=False, max_bytes=1000), endpoint=server.url)
             with self.assertRaises(AniListNetworkError):
                 client.search_anime("x")

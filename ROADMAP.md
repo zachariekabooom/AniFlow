@@ -10,8 +10,9 @@ Légende : `[x]` vérifié par un test exécuté (résultat dans `DEV_LOG.md`) �
 - [~] Dépôt GitHub privé et kit de planification — dépôt indiqué par l'utilisateur ; contenu/visibilité non vérifiables ici ; le code de la phase 0 est livré en archive à appliquer et committer.
 - [~] Valider une recherche AniList GraphQL — client, limiteur, cache, erreurs et `anilist_probe.py` livrés (29 tests, dont 6 sur serveur HTTP local avec le vrai transport) ; **appel réel à AniList non testé** (réseau coupé).
 - [~] Prototyper MPV/libmpv : lecture, pause, seek, position de reprise — logique de sonde testée avec un faux lecteur, `mpv_probe.py` et `qt_smoke.py` livrés ; **libmpv réel et Windows non testés**.
-- [~] Valider Ollama local + appels au modèle Gemma choisi ; aucun endpoint IA distant — client à garde-fous (22 tests contre un faux Ollama local) et `ollama_probe.py` livrés ; **Ollama/Gemma réels non testés**.
+- [~] Valider Ollama local + appels au modèle Gemma choisi ; aucun endpoint IA distant — client à garde-fous (25 tests contre un faux Ollama local, dont les représentations alternatives d'adresse) et `ollama_probe.py` livrés ; **Ollama/Gemma réels non testés**.
 - [~] Confirmer les dépendances, licences et choix de distribution — recensement sourcé dans `DECISIONS.md` ; choix de distribution (GPL ou LGPL) volontairement ouvert jusqu'à toute diffusion.
+- [~] Suite de tests sous Windows 11 / Python 3.12.10 — v1 exécutée par l'utilisateur : 113 tests, 1 échec (adresse IPv4-mappée acceptée), 2 ignorés, 2 erreurs de threads de test (décodage 0xE9, WinError 10053) ; causes corrigées dans les correctifs 1 (123 tests au vert sous Linux, mécanismes simulés) ; **à re-confirmer sous Windows**.
 
 ## Phase 1 — Socle applicatif et design
 - [~] Structure Python/PySide6 modulaire, navigation et thème bleu marine sombre — paquet `src/aniflow`, jetons de design et feuille de style Qt livrés (contrastes WCAG testés) ; fenêtre principale et navigation non faites.

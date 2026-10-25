@@ -12,6 +12,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import _common  # noqa: F401 — effet voulu : sortie UTF-8 (voir _common.force_utf8_output)
+
 
 def build_command(ffmpeg: str, out: Path, seconds: int, video_codec: str) -> list[str]:
     return [
@@ -31,12 +33,12 @@ def main(argv: list[str] | None = None) -> int:
 
     ffmpeg = shutil.which(args.ffmpeg)
     if not ffmpeg:
-        print("FFmpeg introuvable dans le PATH. Installez-le (https://ffmpeg.org/download.html) ou utilisez --ffmpeg <chemin>.", file=sys.stderr)
+        print("FFmpeg est introuvable dans le PATH. Installez-le (https://ffmpeg.org/download.html) ou précisez son emplacement avec --ffmpeg <chemin>.", file=sys.stderr)
         return 2
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     for codec in ("libx264", "mpeg4"):  # repli si cette build de FFmpeg n'embarque pas x264
-        result = subprocess.run(build_command(ffmpeg, out, args.seconds, codec), capture_output=True, text=True)
+        result = subprocess.run(build_command(ffmpeg, out, args.seconds, codec), capture_output=True, text=True, encoding="utf-8", errors="replace")  # écho de diagnostic : jamais de plantage
         if result.returncode == 0:
             print(f"Vidéo de test créée : {out} ({out.stat().st_size / 1024:.0f} Ko, codec vidéo {codec})")
             return 0
