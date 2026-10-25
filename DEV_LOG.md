@@ -44,3 +44,42 @@ Journal concis : une entrée par session, résultats réellement observés. Les 
 **Non testé :** toute exécution sous Windows (3.12.10 compris) : sémantique `ipaddress` récente, console cp1252 et WinError 10053 sont simulées. La phase 0 n'est pas terminée.
 
 **Prochaine tâche :** appliquer `aniflow-phase0-fix1.zip`, relancer la suite sous Windows et renvoyer la sortie complète.
+
+## 2026-10-25 — Validation de la phase 0 sous Windows 11 (preuves réelles)
+
+**Sources :** six rapports JSON produits par les sondes sur le PC de l'utilisateur (Windows 11 10.0.22631, Python 3.12.10, AMD64) et le message de l'utilisateur. Aucun test supplémentaire n'a été exécuté de mon côté : les rapports ont été relus et recoupés (champs `ok`, arithmétique des limites, cohérence entre rapports). Horodatages en UTC.
+
+**Suite automatisée** (communiqué par l'utilisateur ; sortie complète non jointe) : 123 tests exécutés, OK, 2 ignorés.
+
+**AniList réel** (`anilist.json`, 02:10) : 5 étapes sur 5 `ok`.
+- Recherche « Sousou no Frieren » : 0,284 s, 5 résultats (154587 TV 28 ép. 2023 ; 209939 « 3rd Season » TV, ép. inconnus, 2027 ; 182255 « 2nd Season » TV 10 ép. 2026 ; 170068 et 189513 « ●● no Mahou », ONA 12 et 6 ép.). `pageInfo.total` = 5000 : valeur ronde, probablement plafonnée.
+- Fiche du premier résultat : 0,501 s, `idMal` 52991, 6 relations (SOURCE 1, CHARACTER 1, SIDE_STORY 2, OTHER 1, SEQUEL 1), 0 illisible : `relationType(version: 2)` accepté.
+- Lot `id_in` : 6 demandées (la fiche + 5 relations animées, la source manga exclue), 6 reçues, 0 absente, 0,534 s.
+- Cache : second appel en 0,09 ms. Fiche inexistante : erreur propre (« HTTP 404 : Not Found. »).
+- En-tête `X-RateLimit-Limit` = 30 ; `remaining` 29, 28, 27, 27, 25 après 5 requêtes réseau (cohérent) : le mode dégradé à 30/min est confirmé en direct.
+- Non exercés en réel : réponse 429, recherche avec `include_adult=True`.
+
+**libmpv** (`mpv-headless.json` 02:16, `mpv-window.json` 02:20) : 7 contrôles sur 7 `ok` dans chaque mode ; build `mpv v0.41.0-1227-ge471496c5`, FFmpeg `N-127893-g9a861e968` ; `mpv_log` vide.
+- Headless : démarrage 0,047 s ; lecture 3,00 s mesurés pour 3,0 attendus ; pause sans dérive ; ±15 s exacts (3,08 → 18,08 → 3,08) ; seek absolu 30,0 ; reprise à 30,0.
+- Fenêtre : démarrage 0,218 s ; lecture 2,68 s mesurés pour 3,0 attendus (écart de 0,32 s dans la tolérance de 1,5 s, non investigué) ; autres mesures identiques. Image et son constatés par l'utilisateur.
+
+**Qt** (`qt.json`, 12:35) : `logo_loaded` = true, `ok` = true. Échantillons de position : 0,0 → 1,92 → 3,96 → 30,24 → 10,84 → 30,04 → 31,08 (×4) : progression régulière, sauts dans les deux sens, plateau final — compatibles avec ±15 s et pause. Le critère automatique du script (dernier échantillon > premier) est faible : la preuve repose sur le contrôle visuel de l'utilisateur (Lecture/Pause, −15 s, +15 s). Le rendu du thème (fond bleu marine, lisibilité) n'a pas été confirmé explicitement.
+
+**Ollama + Gemma 4** (`ollama-e2b.json` 12:42, `ollama-e4b.json` 12:49) : Ollama 0.40.8 ; `OLLAMA_NO_CLOUD=1` déclaré par l'utilisateur (non vérifiable par les rapports) ; les deux sondes `ok`.
+- `gemma4:e2b` : 4,59 Go sur disque, 4.6B, Q4_K_M ; `gemma4:e4b` : 6,58 Go, 7.5B, Q4_K_M ; aucune entrée distante.
+- Capacités annoncées identiques : audio, completion, thinking, tools, vision ; contexte max 131072 ; sortie JSON structurée conforme (`{"answer": "ok"}`) pour les deux.
+- Mesures brutes du test de 7 jetons générés (**non interprétables**) : E2B chargement 56,70 s, durée murale 80,77 s, 60,1 jetons/s ; E4B chargement 21,61 s, durée murale 36,93 s, 17,6 jetons/s.
+- `/api/ps` : 0,32 Go (E2B) et 0,34 Go (E4B), tout en VRAM.
+
+**Ce qui n'est PAS conclu :**
+- Qualité ou performances des modèles : un test de 7 jetons ne mesure ni l'une ni l'autre ; E2B (testé en premier : démarrage à froid, cache disque) et E4B ne sont pas comparables. E2B et E4B restent candidats ; Gemma 4 12B n'a pas été testé.
+- Mémoire : 0,32 et 0,34 Go sont incompatibles avec des modèles de 4,59 et 6,58 Go (7,0 % et 5,2 % de la taille sur disque) : valeurs ininterprétables, à mesurer avec `nvidia-smi` / Gestionnaire des tâches.
+- 24,1 s (E2B) et 15,3 s (E4B) de durée murale ne sont expliquées ni par le chargement ni par la génération ; `total_duration` n'est pas journalisé par la sonde.
+- Audio : capacité annoncée, mode d'envoi via l'API non vérifié (le client refuse l'audio).
+
+**Licences vérifiées ce jour (sources dans `DECISIONS.md`) :** Gemma 4 : Apache 2.0 (annonce officielle de Google) ; PySide6 : édition communautaire LGPLv3/GPLv3 ou édition commerciale.
+
+**Verdict :** les critères techniques de faisabilité de la phase 0 sont satisfaits sur preuves réelles (6 critères sur 8 cochés). La phase n'est pas cochée : deux vérifications non techniques restent — (1) dépôt privé, kit et code de la phase 0 committés et poussés ; (2) décision de distribution. Aucun test à refaire.
+
+**Prochaine tâche :** obtenir ces deux confirmations de l'utilisateur ; la phase 0 est alors cochée.
+

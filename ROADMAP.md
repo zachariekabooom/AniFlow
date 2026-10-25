@@ -5,14 +5,15 @@ Cette roadmap découpe le logiciel final en phases vérifiables. Ce n'est pas un
 Légende : `[x]` vérifié par un test exécuté (résultat dans `DEV_LOG.md`) · `[~]` code livré et testé en simulation ou sur serveur local, **validation réelle (Windows, réseau, matériel) en attente** · `[ ]` non fait.
 
 ## Phase 0 — Cadrage, dépôt et preuves de faisabilité
+*Statut au 25 octobre 2026 : 6 critères sur 8 satisfaits sur preuves réelles ; 2 confirmations non techniques en attente (aucun test à refaire). Phase non cochée.*
 - [x] Lire `SPEC.md` v0.4.
-- [~] Intégrer `docs/branding/aniflow-logo-final.png` dans l'application — chargeur (`aniflow.paths.logo_path`) et fenêtre de contrôle `qt_smoke.py` livrés ; affichage réel du PNG non vérifié (fichier et PySide6 absents de l'environnement de développement).
-- [~] Dépôt GitHub privé et kit de planification — dépôt indiqué par l'utilisateur ; contenu/visibilité non vérifiables ici ; le code de la phase 0 est livré en archive à appliquer et committer.
-- [~] Valider une recherche AniList GraphQL — client, limiteur, cache, erreurs et `anilist_probe.py` livrés (29 tests, dont 6 sur serveur HTTP local avec le vrai transport) ; **appel réel à AniList non testé** (réseau coupé).
-- [~] Prototyper MPV/libmpv : lecture, pause, seek, position de reprise — logique de sonde testée avec un faux lecteur, `mpv_probe.py` et `qt_smoke.py` livrés ; **libmpv réel et Windows non testés**.
-- [~] Valider Ollama local + appels au modèle Gemma choisi ; aucun endpoint IA distant — client à garde-fous (25 tests contre un faux Ollama local, dont les représentations alternatives d'adresse) et `ollama_probe.py` livrés ; **Ollama/Gemma réels non testés**.
-- [~] Confirmer les dépendances, licences et choix de distribution — recensement sourcé dans `DECISIONS.md` ; choix de distribution (GPL ou LGPL) volontairement ouvert jusqu'à toute diffusion.
-- [~] Suite de tests sous Windows 11 / Python 3.12.10 — v1 exécutée par l'utilisateur : 113 tests, 1 échec (adresse IPv4-mappée acceptée), 2 ignorés, 2 erreurs de threads de test (décodage 0xE9, WinError 10053) ; causes corrigées dans les correctifs 1 (123 tests au vert sous Linux, mécanismes simulés) ; **à re-confirmer sous Windows**.
+- [x] Intégrer `docs/branding/aniflow-logo-final.png` dans l'application — le PNG est chargé par Qt sous Windows (`qt.json` : `logo_loaded: true`) dans la fenêtre de contrôle ; fenêtre principale, icône d'application et variantes de taille relèvent de la phase 1.
+- [~] Dépôt GitHub privé et kit de planification — dépôt indiqué par l'utilisateur ; **à confirmer par l'utilisateur** : dépôt privé, kit et code de la phase 0 committés et poussés (non vérifiable depuis l'environnement de développement).
+- [x] Valider une recherche AniList GraphQL — vérifié sous Windows le 25/10/2026 (`anilist.json`, 5 étapes sur 5) : recherche, fiche avec relations (`relationType(version: 2)`), lecture par lot `id_in` (6 demandées, 6 reçues), erreur 404 propre, cache (0,09 ms) ; `X-RateLimit-Limit` observé : 30. Non exercés en réel : réponse 429, recherche avec `include_adult=True`.
+- [x] Prototyper MPV/libmpv : lecture, pause, seek, position de reprise sous Windows — vérifié (`mpv-headless.json` et `mpv-window.json` : 7 contrôles sur 7 dans chaque mode, build `mpv v0.41.0-1227-ge471496c5`) ; intégration dans une fenêtre Qt (`qt.json`) avec Lecture/Pause et ±15 s vérifiés visuellement par l'utilisateur.
+- [x] Valider Ollama local + appels à Gemma ; aucun endpoint IA distant — vérifié sous Windows (`ollama-e2b.json`, `ollama-e4b.json`) : Ollama 0.40.8, `gemma4:e2b` et `gemma4:e4b` prêts, capacités annoncées `audio`, `completion`, `thinking`, `tools`, `vision`, JSON structuré valide, aucun modèle distant ; `OLLAMA_NO_CLOUD=1` déclaré par l'utilisateur. **Le choix du modèle n'est pas fait** : E2B et E4B restent candidats jusqu'au benchmark représentatif (phase 6) ; 12B non testé.
+- [~] Confirmer les dépendances, licences et choix de distribution — dépendances confirmées à l'exécution (Python 3.12.10, PySide6, python-mpv + libmpv, Ollama) ; licences recensées et vérifiées dans `DECISIONS.md` (Gemma 4 : Apache 2.0 ; PySide6 : LGPLv3/GPLv3 ou commerciale) ; **reste : décision de distribution à confirmer par l'utilisateur** (usage personnel sans diffusion de binaires, ou choix GPL/LGPL avant toute diffusion).
+- [x] Suite de tests sous Windows 11 / Python 3.12.10 — 123 tests exécutés, OK, 2 ignorés (résultat communiqué par l'utilisateur, sortie complète non jointe) ; les trois défauts de la première exécution (adresse IPv4-mappée, décodage 0xE9, WinError 10053) ont été corrigés par les correctifs 1.
 
 ## Phase 1 — Socle applicatif et design
 - [~] Structure Python/PySide6 modulaire, navigation et thème bleu marine sombre — paquet `src/aniflow`, jetons de design et feuille de style Qt livrés (contrastes WCAG testés) ; fenêtre principale et navigation non faites.
@@ -23,7 +24,7 @@ Légende : `[x]` vérifié par un test exécuté (résultat dans `DEV_LOG.md`) �
 
 ## Phase 2 — Recherche, métadonnées et chronologie
 - [ ] Recherche et fiches AniList avec cache. *(client et cache prêts ; reste l'intégration à l'interface et la persistance des œuvres)*
-  - Note de conception vérifiée : l'API est limitée à 30 requêtes/min ; explorer les relations par lots `id_in` (50 fiches/requête) et mettre en cache, sans collecte massive (CGU).
+  - Note de conception confirmée sous Windows (25/10/2026) : l'en-tête `X-RateLimit-Limit` vaut 30 ; la lecture par lots `id_in` fonctionne (6 fiches en 1 requête) — explorer les relations par lots et mettre en cache, sans collecte massive (CGU) ; `pageInfo.total` vaut 5000 (plafond probable) → se fier à `hasNextPage` ; relations observées pour *Sousou no Frieren* : SOURCE, CHARACTER, SIDE_STORY ×2, OTHER, SEQUEL.
 - [ ] Explorer récursivement les relations entre œuvres et consulter d'autres sources identifiées si nécessaire.
 - [ ] Construire la liste par éléments individuels (épisodes) et unités (films, OVA, spéciaux).
 - [ ] Le mode par défaut inclut tous les contenus connus, dont les récapitulatifs.
@@ -59,7 +60,8 @@ Légende : `[x]` vérifié par un test exécuté (résultat dans `DEV_LOG.md`) �
 - [ ] Recherche de timestamps via une source communautaire lorsqu'une entrée existe.
 - [ ] Empreintes audio et/ou similitudes visuelles sur les épisodes locaux.
 - [ ] Ollama local obligatoire pour les sous-tâches qui nécessitent de l'IA ; jamais d'appel distant ni de fallback cloud.
-- [ ] Vérifier pour le runtime/modèle local les modalités effectivement prises en charge.
+- [ ] Vérifier pour le runtime/modèle local les modalités effectivement prises en charge. *(constat sous Windows : Ollama 0.40.8 annonce `audio` pour `gemma4:e2b` et `gemma4:e4b` ; mode d'envoi de l'audio via l'API non vérifié, limite de 30 s par entrée ; le client refuse l'audio tant qu'il n'est pas validé)*
+- [ ] Benchmark représentatif des modèles candidats (E2B, E4B ; 12B si la mémoire le permet) **avant tout choix** : tâches réelles du produit, qualité mesurée sur un jeu annoté, débit sur entrées réalistes, latence à froid et à chaud (21,6 à 56,7 s observés au premier chargement), mémoire GPU/RAM mesurée avec `nvidia-smi` / Gestionnaire des tâches (les valeurs `/api/ps` observées sont incohérentes), `total_duration` journalisé.
 - [ ] Proposer les plages avec niveau de confiance et permettre une correction manuelle.
 - [ ] Tests sur intro raccourcie, absente, outro, récapitulatif et scène post-générique.
 

@@ -17,13 +17,17 @@
 | Suivi projet | GitHub + `PROJECT_STATUS.md` | Git conserve l'historique ; le fichier fournit à Claude une reprise concise. |
 | Développement | Phases successives vers le périmètre complet | Chaque phase est testée, sans réduire l'objectif à un prototype jetable. |
 | Client HTTP | Bibliothèque standard (`urllib`) derrière une interface `HttpTransport` ; aucune dépendance réseau tierce | Zéro dépendance, remplaçable ; redirections jamais suivies ; proxys système ignorés pour l'IA locale. *(phase 0)* |
-| Débit AniList | 30 requêtes/min par défaut, espacement minimal 0,5 s, pénalité partagée après un 429, cache TTL (6 h recherche, 7 j fiches) ; 90/min reste la valeur nominale | La documentation officielle signale un mode dégradé à 30/min avec limiteur de rafale. À re-vérifier. |
+| Débit AniList | 30 requêtes/min par défaut, espacement minimal 0,5 s, pénalité partagée après un 429, cache TTL (6 h recherche, 7 j fiches) ; 90/min reste la valeur nominale | La documentation officielle signale un mode dégradé à 30/min avec limiteur de rafale ; **confirmé en direct le 25/10/2026** (`X-RateLimit-Limit: 30`). À re-vérifier périodiquement. |
 | Relations AniList | Lecture par lots `Page.media(id_in: [...])`, jusqu'à 50 fiches par requête | Une exploration récursive fiche par fiche saturerait 30 requêtes/min. |
 | Contenu adulte | Recherche : `isAdult:false` par défaut (réglage `anilist.include_adult`) ; exploration des relations : jamais filtrée, étiquette `is_adult` conservée | Cohérent avec « ne rien masquer silencieusement » (SPEC §3.1). |
 | Garde-fous IA locale | Adresse de bouclage uniquement ; modèles `-cloud` et entrées `remote_host`/`remote_model` refusés avant tout appel ; aucune redirection ; capacités lues via `/api/show` (échec fermé si inconnues) ; aucun `/api/pull` | Ollama exécute des modèles « cloud » via son API locale : une adresse locale ne garantit pas une inférence locale. Précise SPEC §9 et critère 12 (SPEC non modifié : ajout proposé). |
 | Adresse IA locale | Liste blanche explicite et forme canonique : `localhost`, IPv4 décimale pointée stricte dans `127.0.0.0/8`, `::1` ; tout le reste refusé (IPv4-mappée ou compatible, NAT64/6to4, zone IPv6, décimal/hexadécimal/octal/abrégé, point final, noms DNS) ; le client se connecte à la forme canonique ; jamais `ipaddress.is_loopback` | La sémantique de `is_loopback` pour `::ffff:127.0.0.1` varie selon les correctifs de CPython (échec constaté sous 3.12.10, absent sous 3.12.3). `localhost` reste accepté tel quel (résolu par l'OS) ; le défaut est `127.0.0.1`. *(correctifs 1)* |
 | Sortie des scripts | UTF-8 imposé sur stdout/stderr par `tools/phase0/_common.py` (tous les scripts) ; les tests capturent des octets, décodent strictement dans le thread du test et simulent une console Windows (`PYTHONIOENCODING=cp1252`) pour tous les sous-processus | Un tube Windows hérite de cp1252 ; avec `text=True`, une erreur de décodage dans le thread de lecture ne faisait pas échouer le test. *(correctifs 1)* |
 | Serveur HTTP de test | Déconnexion du client tolérée seulement si déclarée (`tolerate_client_abort=True`) et comptée ; toute autre exception ou déconnexion non déclarée fait échouer le test ; les réponses en cours sont attendues à la sortie | Sous Windows un client qui coupe produit `ConnectionAbortedError` (WinError 10053), pas `BrokenPipeError` : l'ancien serveur ne traitait que deux types et ne laissait qu'une trace sur stderr. *(correctifs 1)* |
+| Modèle IA local | E2B et E4B restent candidats ; aucun choix avant un benchmark représentatif (phase 6) ; 12B non testé | Les mesures de la phase 0 (génération de 7 jetons) prouvent le fonctionnement, pas la qualité ni les performances. *(25/10/2026)* |
+| Mesure de la mémoire IA | `nvidia-smi` et Gestionnaire des tâches pendant une charge réelle ; `/api/ps` seulement comme indice | Valeurs `/api/ps` incohérentes : 0,32 et 0,34 Go pour des modèles de 4,59 et 6,58 Go sur disque. *(25/10/2026)* |
+| Build libmpv de référence | `mpv v0.41.0-1227-ge471496c5` / FFmpeg `N-127893-g9a861e968` (build git non officielle), à épingler pour la phase 3 ; toute autre build : relancer `mpv_probe.py` | Validée sous Windows le 25/10/2026 (7/7 en headless et en fenêtre). Variante de licence (GPL ou LGPL) non précisée par le rapport. |
+| Pagination AniList | Se fier à `pageInfo.hasNextPage` ; ne pas afficher `total` comme nombre de résultats | `total` = 5000 observé pour une recherche simple : plafond probable. *(25/10/2026)* |
 | Persistance | SQLite en WAL ; migrations numérotées (`PRAGMA user_version`) atomiques, précédées d'une sauvegarde ; refus d'ouvrir une base plus récente ; aucune suppression automatique de sauvegarde | SPEC §13 et règle « jamais d'effacement sans action explicite ». |
 | Tests | `unittest` (bibliothèque standard, compatible pytest) ; serveurs HTTP locaux pour le vrai transport ; faux lecteur à horloge simulée | La suite ne dépend ni d'Internet ni de pytest. |
 | `.gitignore` | Motifs de dossiers ancrés à la racine (`/Downloads/`, `/models/`, `/media/`…) | Le fichier recommandé ignorait, sous Windows (Git insensible à la casse), le futur paquet `src/aniflow/services/downloads/`. |
@@ -46,17 +50,24 @@
 
 **Détection d'intro (phase 6)** — AniSkip : `GET https://api.aniskip.com/v2/skip-times/{malId}/{épisode}?types[]=op&types[]=ed&types[]=mixed-op&types[]=mixed-ed&types[]=recap&episodeLength={s}` ; indexé par identifiant **MAL** (d'où `idMal` conservé dans nos modèles). Conditions d'usage non vérifiées.
 
-## Dépendances et licences (état au 24 octobre 2026)
+## Mesuré sous Windows le 25 octobre 2026 (rapports JSON de l'utilisateur, Windows 11 10.0.22631, Python 3.12.10)
+
+- **AniList :** en-tête `X-RateLimit-Limit: 30` ; 5 requêtes réseau → `remaining` 29 puis 25 (cohérent) ; lot `id_in` : 6 fiches en 1 requête ; 404 : « Not Found. » ; `pageInfo.total` = 5000.
+- **libmpv :** `mpv v0.41.0-1227-ge471496c5`, FFmpeg `N-127893-g9a861e968` ; lecture, pause, ±15 s, seek absolu et reprise exacts à 0,01 s près ; en fenêtre, 2,68 s mesurés pour 3,0 s écoulés (dans la tolérance de 1,5 s, non investigué).
+- **Ollama 0.40.8 :** `/api/show` renvoie `capabilities` ; `gemma4:e2b` = 4,59 Go, 4.6B, Q4_K_M ; `gemma4:e4b` = 6,58 Go, 7.5B, Q4_K_M ; contexte max 131072 ; capacités identiques : audio, completion, thinking, tools, vision ; `format` avec schéma JSON accepté.
+- **Non interprétable :** débits et durées d'un test de 7 jetons (E2B mesuré en premier : démarrage à froid et cache disque, donc non comparable) ; `/api/ps` (0,32 / 0,34 Go).
+
+## Dépendances et licences (état au 25 octobre 2026)
 
 | Composant | Licence | Statut |
 |---|---|---|
 | Python | PSF | connu |
-| PySide6 (Qt for Python) | LGPLv3 / GPL / commerciale | connu, non re-vérifié ; en LGPL, privilégier une distribution en dossier (pas un exécutable unique) — à confirmer en phase 7 |
+| PySide6 (Qt for Python) | édition communautaire LGPLv3/GPLv3, ou édition commerciale | vérifié le 25/10/2026 (doc.qt.io/qtforpython) ; en LGPL, privilégier une distribution en dossier (pas un exécutable unique) — à confirmer en phase 7 |
 | python-mpv (`mpv`) | hérite de libmpv : GPLv2+ (défaut) ou LGPLv2.1+ | vérifié (README) |
 | libmpv-2.dll (builds Windows) | GPL par défaut ; build LGPL séparée | vérifié (dépôts des builds) |
 | FFmpeg / ffprobe | LGPL ou GPL selon la build | connu |
 | Ollama | MIT | connu, non re-vérifié |
-| Gemma 4 | conditions propres au modèle | **non vérifié** : lire avant le premier usage durable |
+| Gemma 4 | Apache 2.0 | vérifié le 25/10/2026 (annonce officielle blog.google ; Gemma 3 et antérieurs relevaient des « Gemma Terms of Use ») |
 | API AniList | CGU ci-dessus | vérifié |
 | AniSkip ; extracteurs de téléchargement | — | non examinés (phases 5 et 6) |
 
@@ -67,13 +78,13 @@
 1. `PROJECT_STATUS.md` demandait de créer le dépôt ; il existe d'après l'utilisateur (contenu et visibilité non lisibles depuis l'environnement de développement : robots.txt).
 2. SPEC §9 et critère 12 interdisent « tout service cloud », or Ollama peut en servir via son API locale : garde-fous ajoutés ; **ligne de SPEC à ajouter si vous validez** : « Les modèles Ollama cloud sont interdits au même titre que tout fournisseur distant. »
 3. `.gitignore` recommandé : motifs non ancrés dangereux (voir tableau).
-4. SPEC cite Gemma 4 12B : il existe, mais son empreinte (de l'ordre de 8 Go quantifié d'après une source secondaire) dépasse probablement la VRAM d'un GPU portable de classe RTX 2050 (≈ 4 Go, à confirmer par `/api/ps`) : E2B/E4B sont les candidats réalistes ; décision après mesures.
+4. SPEC cite Gemma 4 12B : il existe, mais son empreinte (de l'ordre de 8 Go quantifié d'après une source secondaire) dépasse probablement la VRAM d'un GPU portable de classe RTX 2050 (≈ 4 Go, à confirmer par `nvidia-smi` : `/api/ps` indique la mémoire d'un modèle chargé, pas la capacité du GPU) : E2B/E4B sont les candidats réalistes ; décision après mesures.
 
 ## Points à vérifier pendant l’implémentation
 
 - Première source de téléchargement compatible et autorisée pour un test d’intégration.
 - Empaquetage Windows et licences des dépendances. *(licences recensées ci-dessus ; empaquetage : phase 7)*
-- Modèle local et modalités réellement prises en charge par la version d’Ollama retenue. *(sonde `ollama_probe.py` livrée ; mesures sur le PC cible en attente)*
+- Modèle local et modalités réellement prises en charge par la version d’Ollama retenue. *(capacités et appels vérifiés sous Windows le 25/10/2026 ; qualité, performances et mémoire : benchmark représentatif en attente)*
 - Source secondaire de métadonnées/chronologie capable de compléter AniList.
 - Qualité des ressources de marque à différentes tailles ; le logo PNG fourni reste la référence approuvée.
 
