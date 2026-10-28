@@ -1,3 +1,4 @@
+import base64
 import sqlite3
 import tempfile
 import unittest
@@ -24,6 +25,7 @@ from aniflow.database import (
     verify_database_file,
 )
 from aniflow.paths import AppPaths
+from aniflow.ui.navigation import SECTION_IDS
 from tests.support.fake_mpv import FakeClock
 
 
@@ -165,7 +167,10 @@ class SettingsTests(TempDirCase):
         self.assertEqual(s.get("ai.model"), "gemma4:e2b")
         s.reset("ai.model")
         self.assertIsNone(s.get("ai.model"))
-        self.assertEqual(set(s.all()), {"ai.ollama_url", "ai.model", "anilist.include_adult", "ui.title_language", "downloads.dir"})
+        self.assertEqual(
+            set(s.all()),
+            {"ai.ollama_url", "ai.model", "anilist.include_adult", "ui.title_language", "ui.last_section", "ui.window_geometry", "downloads.dir"},
+        )
 
     def test_values_persist_across_connections(self):
         conn, s = self.store()
@@ -183,6 +188,35 @@ class SettingsTests(TempDirCase):
                 s.set("ai.model", model)
         self.assertEqual(s.get("ai.ollama_url"), "http://127.0.0.1:11434")  # inchangé après refus
         self.assertEqual(s.set("ai.ollama_url", "http://localhost:11434/"), "http://localhost:11434")
+
+    def test_last_section_and_window_geometry_persist(self):
+        conn, s = self.store()
+        self.assertEqual(s.get("ui.last_section"), "accueil")
+        self.assertIsNone(s.get("ui.window_geometry"))
+        for section_id in SECTION_IDS:
+            self.assertEqual(s.set("ui.last_section", section_id), section_id)
+        geometry = base64.b64encode(bytes(range(100))).decode("ascii")
+        s.set("ui.last_section", "recherche")
+        s.set("ui.window_geometry", geometry)
+        conn.close()
+        reopened = SettingsStore(self.open())
+        self.assertEqual((reopened.get("ui.last_section"), reopened.get("ui.window_geometry")), ("recherche", geometry))
+        reopened.set("ui.window_geometry", None)
+        self.assertIsNone(reopened.get("ui.window_geometry"))
+
+    def test_invalid_section_and_geometry_are_refused_and_nothing_is_stored(self):
+        _, s = self.store()
+        for bad in ("inconnue", "", None, 3, ["accueil"], "Accueil"):
+            with self.subTest(section=bad), self.assertRaises(SettingsError) as ctx:
+                s.set("ui.last_section", bad)
+            self.assertIn("n'existe pas", ctx.exception.user_message)
+        too_big = base64.b64encode(b"x" * 5000).decode("ascii")
+        for bad in ("pas du base64 !!", "", 3, "é", too_big, ["QUJD"]):
+            with self.subTest(geometry=bad), self.assertRaises(SettingsError) as ctx:
+                s.set("ui.window_geometry", bad)
+            self.assertIn("invalide", ctx.exception.user_message)
+        self.assertEqual(s.get("ui.last_section"), "accueil")
+        self.assertIsNone(s.get("ui.window_geometry"))
 
     def test_unknown_keys_and_bad_values(self):
         _, s = self.store()

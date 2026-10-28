@@ -79,7 +79,53 @@ Journal concis : une entrée par session, résultats réellement observés. Les 
 
 **Licences vérifiées ce jour (sources dans `DECISIONS.md`) :** Gemma 4 : Apache 2.0 (annonce officielle de Google) ; PySide6 : édition communautaire LGPLv3/GPLv3 ou édition commerciale.
 
-**Verdict :** les critères techniques de faisabilité de la phase 0 sont satisfaits sur preuves réelles (6 critères sur 8 cochés). La phase n'est pas cochée : deux vérifications non techniques restent — (1) dépôt privé, kit et code de la phase 0 committés et poussés ; (2) décision de distribution. Aucun test à refaire.
+**Verdict :** les critères techniques de faisabilité de la phase 0 sont satisfaits sur preuves réelles (6 critères sur 8 cochés). La phase n'est pas cochée : deux vérifications non techniques restent — (1) dépôt privé, kit et code de la phase 0 committés et poussés ; (2) décision de distribution. Aucun test à refaire. *(soldé le 2026-10-26 : voir l'entrée du jour.)*
 
-**Prochaine tâche :** obtenir ces deux confirmations de l'utilisateur ; la phase 0 est alors cochée.
+**Prochaine tâche :** obtenir ces deux confirmations de l'utilisateur ; la phase 0 est alors cochée. *(fait le 2026-10-26.)*
 
+## 2026-10-26 — Clôture de la phase 0 (documents) et livraison E0 + E1 de la phase 1
+
+**Décisions de l'utilisateur (message du 26/10/2026), déclarées et non vérifiées directement :** dépôt GitHub public volontairement ; phase 0 testée sous Windows 11 (123 tests réussis, 2 ignorés ; validations MPV, Qt, AniList, Ollama) ; commit `627a23d` poussé sur `phase0-integration` ; usage personnel uniquement, aucun binaire avant décision explicite de licence ; licence du code source décidée plus tard ; plan E0–E8 approuvé avec PySide6 6.12.0, icônes Lucide, restauration reportée en phase 7 et flux Git (fusion de `phase0-integration` dans `main`, tag, branche `phase1`). Aucun audit de l'historique n'est demandé ni lancé.
+
+**Sources lues :** GitHub n'est pas lisible depuis l'environnement de développement (robots.txt ; la recherche web ne retrouve pas le dépôt) et les copies du projet Claude (`/mnt/project`) sont celles du kit initial, périmées. Référence utilisée : ma copie de travail des documents livrés (non prouvée identique à `627a23d`).
+
+**E0 — documents, aucun code :**
+- Affirmations obsolètes (dépôt privé, visibilité ou publication non confirmées) supprimées dans `CLAUDE_WORKFLOW.md`, `DECISIONS.md`, `PROJECT_STATUS.md` et `ROADMAP.md` ; l'entrée du 25/10 est conservée (journal) et annotée.
+- Phase 0 cochée 8/8 sur les rapports Windows et vos confirmations ; plan approuvé conservé dans `docs/phase1/PLAN.md` ; `README.md` : état et non-affiliation à AniList.
+- Non revus car absents de mon environnement : `GITHUB_SETUP.md`, `CLAUDE_MASTER_PROMPT.md`, `CLAUDE_PROJECT_INSTRUCTIONS.md`, `CLAUDE_SESSION_TEMPLATE.md`. Le bloc `.gitignore` de `CLAUDE_WORKFLOW.md` §5 (motifs non ancrés) reste périmé : le `.gitignore` du dépôt fait foi.
+
+**E1 — code (sans Qt) :**
+- `src/aniflow/ui/navigation.py` : 6 sections dans l'ordre de SPEC §11, identifiants persistés, raccourcis Ctrl+1…6, `NavigationModel`.
+- `src/aniflow/database/settings.py` : clés `ui.last_section` et `ui.window_geometry`, validées à l'écriture.
+- `src/aniflow/startup.py` : `run_startup_checks` (succès ou échec avec message français et code de sortie 1, 2 ou 3).
+- `src/aniflow/ui/errors.py` : `describe_exception`.
+- Tests : `test_navigation` (14), `test_startup` (11), `test_ui_errors` (7), `test_repo_hygiene` (6, fichiers suivis uniquement), `test_no_hardcoded_colors` (2), `test_database` (+2).
+
+**Résultats (Linux, Python 3.12.3, exécutés par l'assistant) :**
+- `python3 -m unittest discover -s tests -t .` → `Ran 165 tests … OK` (123 existants + 42 nouveaux).
+- `python3 -X dev -W default -m unittest discover -s tests -t .` → `Ran 165 tests … OK`, 0 trace ou avertissement.
+- Hygiène sur l'index réel après `git add` : 0 violation ; contrôle de discrimination : un `aniflow.db` ajouté à l'index fait échouer le test (retiré ensuite).
+
+**Non exécuté / non vérifié :** aucun test d'E1 sous Windows (git sous Windows, chemins, dépôt réel de l'utilisateur) ; aucune commande Git exécutée par l'assistant ; rien de Qt (E1 n'en contient pas). Aucun critère de phase 1 n'est coché `[x]`.
+
+**Commandes Git à exécuter par l'utilisateur (non exécutées par l'assistant) :**
+
+```powershell
+git status
+git checkout main
+git pull origin main
+git merge --no-ff phase0-integration -m "Merge phase0-integration : phase 0 validée sous Windows"
+git tag -a phase0-validee -m "Phase 0 validée sous Windows : AniList, libmpv, Qt, Ollama ; 123 tests"
+git push origin main phase0-validee
+git checkout -b phase1
+Expand-Archive -Path $HOME\Downloads\aniflow-phase1-e0-e1.zip -DestinationPath . -Force
+git status
+python -m unittest discover -s tests -t .
+git add -A
+git commit -m "docs(phase0): clôture ; feat(phase1/E1): navigation, démarrage, erreurs, garde-fous"
+git push -u origin phase1
+```
+
+Le tag désigne l'état validé par vos tests ; les documents qui actent la clôture arrivent avec l'archive, premier commit de `phase1`.
+
+**Prochaine tâche :** exécuter ces commandes et renvoyer la sortie complète des tests ; E2 (démarrage de l'application) suivra.

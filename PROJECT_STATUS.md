@@ -3,18 +3,19 @@
 > Fiche de reprise prioritaire. La maintenir courte, factuelle et à jour. Ne jamais en faire un résumé intégral de conversation.
 
 - **Spécification :** `SPEC.md` v0.4 (inchangée)
-- **État :** phase 0 — **toutes les preuves de faisabilité sont obtenues sous Windows 11** (AniList réel, libmpv en headless et en fenêtre, intégration Qt + logo, Ollama 0.40.8 avec Gemma 4 E2B et E4B, suite de tests). Phase **non cochée** : 2 confirmations non techniques restent à obtenir (voir « Prochaine action »). Phase 1 : socle non graphique fait, interface non commencée.
-- **Code applicatif :** `src/aniflow/` (clients AniList et Ollama local, base SQLite, thème, sonde libmpv), sondes dans `tools/phase0/`, procédure dans `docs/phase0/validation-windows.md`
-- **Dépôt :** https://github.com/zachariekabooom/AniFlow — non lisible depuis l'environnement de développement (robots.txt), aucun accès en écriture ; code livré par archives (`aniflow-phase0.zip`, `aniflow-phase0-fix1.zip`). **Confidentialité du dépôt et publication du code non confirmées.**
-- **Dernier commit stable :** non communiqué par l'utilisateur
-- **Tests :** 123 tests `unittest` : OK en développement (Linux, Python 3.12.3) ; **OK sous Windows 11 / Python 3.12.10 : 123 exécutés, 2 ignorés** (résultat communiqué par l'utilisateur, sortie complète non jointe)
+- **État :** **phase 0 terminée (26 oct. 2026)** : preuves réelles sous Windows 11 du 25 oct. 2026 (AniList, libmpv en headless et en fenêtre, Qt + logo, Ollama 0.40.8 avec Gemma 4 E2B et E4B) et confirmations explicites de l'utilisateur. **Phase 1 ouverte** : plan E0–E8 approuvé (`docs/phase1/PLAN.md`) ; E0 (documents) et E1 (logique pure) livrés dans `aniflow-phase1-e0-e1.zip`, **exécution de E1 sous Windows en attente** ; E2 à E8 non commencées.
+- **Code applicatif :** `src/aniflow/` (clients AniList et Ollama local, base SQLite, thème, sonde libmpv ; depuis E1 : modèle de navigation, contrôles de démarrage, traduction des erreurs), sondes dans `tools/phase0/`, procédure Windows de la phase 0 dans `docs/phase0/validation-windows.md`. Aucune fenêtre applicative n'existe encore.
+- **Dépôt :** https://github.com/zachariekabooom/AniFlow — **public (choix explicite de l'utilisateur)**. Commit `627a23d` poussé sur la branche `phase0-integration` (déclaré par l'utilisateur ; GitHub n'est pas lisible depuis l'environnement de développement, donc non vérifié directement). Code livré par archives ; l'assistant n'a aucun accès en écriture.
+- **Dernier commit stable :** `627a23d` (branche `phase0-integration`, déclaré par l'utilisateur) ; fusion dans `main` et tag `phase0-validee` à exécuter par l'utilisateur.
+- **Distribution et licence :** usage personnel uniquement ; aucun binaire distribué avant décision explicite de licence ; licence du code source reportée (tant qu'aucun fichier `LICENSE` n'existe, le code public est « tous droits réservés » par défaut).
+- **Tests :** 165 tests `unittest` passent dans l'environnement de développement (Linux, Python 3.12.3, exécutés par l'assistant). Dernier résultat sous Windows 11 / Python 3.12.10 (communiqué par l'utilisateur, avant E1) : 123 exécutés, OK, 2 ignorés. **E1 non encore exécuté sous Windows.**
 - **Preuves réelles sous Windows (25 oct. 2026, rapports JSON de l'utilisateur) :**
   - AniList : recherche, fiche avec relations, lecture par lot `id_in` (6 demandées / 6 reçues), erreur 404 propre, cache ; en-tête `X-RateLimit-Limit` = 30 (limite dégradée confirmée en direct).
   - libmpv `mpv v0.41.0-1227-ge471496c5` : 7 contrôles sur 7 en headless et en fenêtre (lecture, pause, ±15 s, seek absolu, reprise) ; intégration Qt : logo chargé, Lecture/Pause et ±15 s vérifiés visuellement par l'utilisateur.
   - Ollama 0.40.8 (`OLLAMA_NO_CLOUD=1` déclaré) : `gemma4:e2b` (4,59 Go) et `gemma4:e4b` (6,58 Go) prêts, capacités `audio/completion/thinking/tools/vision`, JSON structuré valide, aucun modèle distant.
-- **Non testé / non conclu :** réponse 429 réelle d'AniList ; recherche avec `include_adult=True` en réel ; **envoi d'audio via Ollama** (capacité annoncée, mode d'envoi non vérifié) ; **qualité et performances des modèles** (aucun benchmark représentatif : des mesures sur 7 jetons ne permettent aucune conclusion) ; Gemma 4 12B ; empreinte mémoire des modèles (valeurs `/api/ps` incohérentes) ; rendu du thème Qt (non confirmé explicitement).
+- **Non testé / non conclu :** réponse 429 réelle d'AniList ; recherche avec `include_adult=True` en réel ; **envoi d'audio via Ollama** (capacité annoncée, mode d'envoi non vérifié) ; **qualité et performances des modèles** (aucun benchmark représentatif : des mesures sur 7 jetons ne permettent aucune conclusion) ; Gemma 4 12B ; empreinte mémoire des modèles (valeurs `/api/ps` incohérentes) ; rendu du thème Qt (non confirmé explicitement) ; exécution sous Windows des tests d'E1, dont le garde-fou d'hygiène sur les fichiers suivis du dépôt réel.
 - **Logo approuvé :** `docs/branding/aniflow-logo-final.png` — chargé par Qt sous Windows (`logo_loaded: true`)
-- **Prochaine action unique :** obtenir 2 confirmations de l'utilisateur, **sans aucun test à refaire** : (1) le dépôt est-il privé, et le kit ainsi que le code de la phase 0 y sont-ils committés et poussés ? (2) décision de distribution : confirmer « usage personnel, aucune diffusion de binaires avant décision explicite (GPL ou LGPL) » ou choisir. La phase 0 sera alors cochée.
+- **Prochaine action unique :** exécuter la livraison E0 + E1 sur le PC de l'utilisateur : commandes Git (fusion de `phase0-integration` dans `main`, tag `phase0-validee`, branche `phase1`), extraction de `aniflow-phase1-e0-e1.zip`, `python -m unittest discover -s tests -t .` et renvoi de la sortie complète ; E2 suivra.
 
 ## Décisions confirmées
 
@@ -27,6 +28,8 @@
 - IA exclusivement locale (Ollama d'abord) : adresse de bouclage seulement, **modèles Ollama « cloud » refusés**, aucun repli distant, aucune modalité envoyée sans capacité annoncée, aucun téléchargement de modèle automatique.
 - **Modèle local : E2B et E4B restent candidats ; aucun choix avant un benchmark représentatif (phase 6) ; 12B non testé.**
 - libmpv : build de référence validée `mpv v0.41.0-1227-ge471496c5` (build git non officielle), à épingler pour la phase 3.
+- **Dépôt public voulu ; usage personnel ; aucun binaire avant décision explicite de licence ; licence du code source reportée (26/10/2026).**
+- **Flux Git : `phase0-integration` fusionnée dans `main` + tag `phase0-validee`, puis branche `phase1`. PySide6 6.12.0. Icônes Lucide avec avis de licence. Restauration de sauvegarde (interface) reportée à la phase 7. Plan de la phase 1 approuvé.**
 - Le logiciel complet est construit par phases vérifiables, sans s'arrêter à un prototype jetable.
 - Tests en `unittest` (aucune dépendance) ; `.gitignore` corrigé : motifs ancrés à la racine.
 
@@ -36,7 +39,9 @@
 - Compatibilité des URL de téléchargement : sources autorisées, liens directs ou adaptateurs à licence et maintenance vérifiées.
 - libmpv sous Windows : **prouvé** (7/7 headless et fenêtre) avec une build git non officielle ; restent : variante de licence de cette build (GPL ou LGPL non précisée), épinglage, empaquetage.
 - IA : audio annoncé mais envoi non vérifié (limite de 30 s par entrée) ; empreinte mémoire inconnue (`/api/ps` : 0,32 et 0,34 Go, non interprétable) → mesurer avec `nvidia-smi` / Gestionnaire des tâches ; démarrage à froid observé de 21,6 à 56,7 s (l'interface devra être asynchrone) ; qualité et débit à mesurer sur tâches réelles.
-- CGU AniList : pas de miroir de la base, pas de diffusion publique avant d'avoir clarifié la clause « services concurrents ».
+- CGU AniList : pas de miroir de la base ; pas de binaire ni de service hébergé avant d'avoir clarifié la clause « services concurrents » (le dépôt public ne contient que du code source).
+- Dépôt public : ne jamais committer base de données, rapports, DLL, modèles, vidéos, archives, secrets ni chemins personnels — garde-fou automatisé sur les fichiers suivis (E1).
+- Phase 1 : l'assistant ne peut pas exécuter PySide6 ; toute étape d'interface est validée sur le PC de l'utilisateur.
 - Machine cible : Windows 11, 16 Go de RAM, MSI Thin GF63 12UCX, RTX 2050 (déclaré par l'utilisateur) ; mesurer plutôt que supposer.
 
 ## Protocole anti-perte de contexte et anti-gaspillage de tokens

@@ -4,7 +4,9 @@
 
 AniFlow est une application de bureau Windows 11 destinée à rechercher des animés, construire et personnaliser leur chronologie complète, organiser une bibliothèque personnelle, lire des fichiers locaux, gérer les téléchargements compatibles et présenter des statistiques détaillées.
 
-**État actuel :** phase 0 — preuves de faisabilité obtenues sous Windows 11 (AniList réel, libmpv, Qt, Ollama avec Gemma 4 E2B/E4B ; 123 tests passants sous Windows et sous Linux) ; deux confirmations non techniques restent avant de cocher la phase. Voir `PROJECT_STATUS.md`.
+**État actuel :** phase 0 **terminée** (preuves réelles sous Windows 11 : AniList, libmpv, Qt, Ollama avec Gemma 4 E2B/E4B) ; phase 1 en cours (étapes E0 et E1 livrées, E2 à E8 à venir). Voir `PROJECT_STATUS.md`.
+
+AniFlow est un projet personnel **non officiel**, sans lien avec AniList ; les métadonnées proviennent de l'API publique d'AniList, utilisée selon [ses conditions d'utilisation](https://docs.anilist.co/guide/terms-of-use). Le dépôt est public ; aucune licence n'est encore choisie pour le code (tous droits réservés par défaut) et aucun binaire n'est distribué.
 
 ## Source de vérité du projet
 

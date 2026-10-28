@@ -4,7 +4,7 @@ Ce fichier complète `CLAUDE_MASTER_PROMPT.md`. Pour les paramètres pas à pas 
 
 ## 1. Mise en place de GitHub
 
-1. Créer un dépôt **privé** nommé `AniFlow` (ou le nom final retenu).
+1. Utiliser le dépôt GitHub `AniFlow` : **public**, choix explicite du propriétaire (voir `DECISIONS.md`). Ne jamais y committer de base de données, de rapport généré, de DLL, de modèle, de vidéo, d'archive ni de secret.
 2. Copier les fichiers du kit à la racine du dépôt.
 3. Utiliser le `.gitignore` fourni et vérifier qu’il exclut les environnements virtuels, `.env`, clés/secrets, modèles IA, vidéos, bases personnelles, caches, logs et fichiers temporaires. Il doit exclure au minimum les environnements virtuels, `.env`, clés/secrets, modèles IA, vidéos, bases personnelles, caches, logs et fichiers temporaires.
 4. Réaliser un premier commit dédié à la planification : `docs: add AniFlow specification and project plan`.
