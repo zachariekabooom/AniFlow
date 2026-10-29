@@ -1,8 +1,10 @@
 import base64
+import hashlib
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from aniflow.database import (
     LATEST_VERSION,
@@ -27,6 +29,7 @@ from aniflow.database import (
 from aniflow.paths import AppPaths
 from aniflow.ui.navigation import SECTION_IDS
 from tests.support.fake_mpv import FakeClock
+from tests.support.openfiles import assert_released_then_delete, without_garbage_collector
 
 
 class TempDirCase(unittest.TestCase):
@@ -275,6 +278,87 @@ class BootstrapTests(TempDirCase):
         pre.close()
         with self.assertRaises(DatabaseTooNewError):
             open_app_database(paths)
+
+
+class ConnectionCleanupTests(TempDirCase):
+    """Aucune connexion ne doit dépendre du ramasse-miettes pour être fermée.
+
+    Python ≥ 3.11 : une Connection abandonnée n'est libérée que par le ramasse-miettes cyclique ; sous Windows, un
+    fichier resté ouvert bloque la suppression du dossier temporaire (WinError 32).
+    """
+
+    def setUp(self):
+        super().setUp()
+        without_garbage_collector(self)
+
+    def unreadable(self, path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"ceci n'est pas une base SQLite" * 50)
+        return path
+
+    def test_connection_is_closed_when_a_pragma_fails(self):
+        fake = mock.MagicMock()
+        fake.execute.side_effect = [None, None, sqlite3.DatabaseError("file is not a database")]  # 3e PRAGMA : journal_mode
+        with mock.patch("aniflow.database.connection.sqlite3.connect", return_value=fake):
+            with self.assertRaises(sqlite3.DatabaseError):
+                connect(self.dir / "x.db")
+        fake.close.assert_called_once_with()
+
+    def test_original_error_wins_when_closing_also_fails(self):
+        fake = mock.MagicMock()
+        fake.execute.side_effect = sqlite3.DatabaseError("file is not a database")
+        fake.close.side_effect = sqlite3.ProgrammingError("fermeture impossible")
+        with mock.patch("aniflow.database.connection.sqlite3.connect", return_value=fake):
+            with self.assertRaises(sqlite3.DatabaseError) as ctx:
+                connect(self.dir / "x.db")
+        self.assertIn("not a database", str(ctx.exception))
+
+    def test_unreadable_file_is_released_as_soon_as_connect_fails(self):
+        path = self.unreadable(self.dir / "illisible.db")
+        with self.assertRaises(sqlite3.DatabaseError):
+            connect(path)
+        assert_released_then_delete(self, path)
+
+    def test_open_app_database_releases_and_leaves_untouched_an_unreadable_file(self):
+        paths = AppPaths(self.dir / "AniFlowData").ensure()
+        self.unreadable(paths.database)
+        before = hashlib.sha256(paths.database.read_bytes()).hexdigest()
+        with self.assertRaises(sqlite3.DatabaseError) as ctx:
+            open_app_database(paths)
+        self.assertIn("not a database", str(ctx.exception))  # message d'erreur inchangé
+        self.assertEqual(hashlib.sha256(paths.database.read_bytes()).hexdigest(), before)
+        assert_released_then_delete(self, paths.database)
+
+    def test_open_app_database_releases_the_file_when_a_migration_fails(self):
+        paths = AppPaths(self.dir / "AniFlowData")
+        with mock.patch("aniflow.database.bootstrap.migrate", side_effect=MigrationError(2, "boom")):
+            with self.assertRaises(MigrationError) as ctx:
+                open_app_database(paths)
+        self.assertIn("annulée", ctx.exception.user_message)  # message d'erreur inchangé
+        assert_released_then_delete(self, paths.database)
+
+    def test_original_migration_error_wins_when_closing_also_fails(self):
+        fake = mock.MagicMock()
+        fake.close.side_effect = sqlite3.ProgrammingError("fermeture impossible")
+        with mock.patch("aniflow.database.bootstrap.connect", return_value=fake), mock.patch(
+            "aniflow.database.bootstrap.migrate", side_effect=MigrationError(2, "boom")
+        ):
+            with self.assertRaises(MigrationError):
+                open_app_database(AppPaths(self.dir / "AniFlowData"))
+        fake.close.assert_called_once_with()
+
+    def test_connect_keeps_its_normal_behaviour_when_opening_succeeds(self):
+        conn = connect(self.dir / "ok.db")
+        self.addCleanup(conn.close)
+        self.assertIs(conn.row_factory, sqlite3.Row)
+        self.assertIsNone(conn.isolation_level)
+        self.assertEqual(conn.execute("PRAGMA foreign_keys").fetchone()[0], 1)
+        self.assertEqual(conn.execute("PRAGMA journal_mode").fetchone()[0], "wal")
+        self.assertEqual(conn.execute("PRAGMA busy_timeout").fetchone()[0], 5000)
+        self.assertEqual(conn.execute("PRAGMA synchronous").fetchone()[0], 1)  # NORMAL
+        conn.execute("CREATE TABLE t(a)")
+        conn.execute("INSERT INTO t VALUES (1)")
+        self.assertEqual(conn.execute("SELECT a FROM t").fetchone()["a"], 1)  # lignes accessibles par nom
 
 
 if __name__ == "__main__":

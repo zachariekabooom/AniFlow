@@ -16,6 +16,9 @@ def open_app_database(paths: AppPaths | None = None) -> sqlite3.Connection:
     try:
         migrate(conn, backups_dir=paths.backups)
     except BaseException:
-        conn.close()
+        try:
+            conn.close()
+        except sqlite3.Error:
+            pass  # l'erreur d'origine (migration, version trop récente…) prime
         raise
     return conn

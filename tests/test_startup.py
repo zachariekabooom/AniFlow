@@ -9,6 +9,7 @@ from unittest import mock
 
 from aniflow.database import LATEST_VERSION, MigrationError, current_version, list_backups
 from aniflow.paths import AppPaths
+from tests.support.openfiles import assert_released_then_delete, without_garbage_collector
 from aniflow.startup import (
     EXIT_DATA_FOLDER,
     EXIT_DATABASE,
@@ -71,6 +72,10 @@ class HealthyStartTests(StartupCase):
 
 
 class DatabaseFailureTests(StartupCase):
+    def setUp(self):
+        super().setUp()
+        without_garbage_collector(self)  # aucune connexion ne doit dépendre du ramasse-miettes (WinError 32 sous Windows)
+
     def seed_database(self, user_version=None, content=None):
         self.paths.ensure()
         if content is not None:
@@ -93,7 +98,7 @@ class DatabaseFailureTests(StartupCase):
         self.addCleanup(check.close)
         self.assertEqual(check.execute("PRAGMA user_version").fetchone()[0], 99)  # jamais « migrée » vers le bas
         check.close()
-        os.remove(self.paths.database)  # sous Windows, échouerait si une connexion restait ouverte
+        assert_released_then_delete(self, self.paths.database)  # Windows : échouerait si une connexion restait ouverte
 
     def test_unreadable_database_is_reported_and_left_untouched(self):
         self.seed_database(content=b"ceci n'est pas une base SQLite" * 50)
@@ -105,6 +110,7 @@ class DatabaseFailureTests(StartupCase):
         self.assertIn(str(self.paths.backups), failure.user_message)
         self.assertIn("pas tenté de le réparer", failure.user_message)
         self.assertEqual(self.sha(self.paths.database), before)
+        assert_released_then_delete(self, self.paths.database)  # c'est ici que Windows signalait WinError 32
 
     def test_migration_failure(self):
         with mock.patch("aniflow.startup.open_app_database", side_effect=MigrationError(2, "boom")):
