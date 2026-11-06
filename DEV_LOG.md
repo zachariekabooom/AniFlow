@@ -129,3 +129,33 @@ git push -u origin phase1
 Le tag désigne l'état validé par vos tests ; les documents qui actent la clôture arrivent avec l'archive, premier commit de `phase1`.
 
 **Prochaine tâche :** exécuter ces commandes et renvoyer la sortie complète des tests ; E2 (démarrage de l'application) suivra.
+
+## 2026-10-26 — E2 + E3 : démarrage de l'application et fenêtre principale
+
+**État de référence communiqué par l'utilisateur :** branche `phase1`, commit `0cef9ba`, 172 tests OK sous Windows 11 / Python 3.12.10 (2 ignorés), PySide6 6.12.0. GitHub reste illisible ici (robots.txt, ré-essayé) : base = ma copie locale à l'état du correctif SQLite, supposée identique.
+
+**Livré :**
+- `python -m aniflow` (`__main__.py`, `app.py`) ; commande `aniflow` déclarée dans `pyproject.toml`.
+- `ui/application.py` : application Qt, style Fusion, `QStyleHints.setColorScheme(Dark)` (protégé, Qt ≥ 6.8), palette sombre issue des jetons (`ui/theme/qt_palette.py`), feuille de style, `LC_NUMERIC=C`, icône du logo, boucle d'événements, mode `--smoke-test`, boîte de dialogue d'erreur de démarrage.
+- `ui/main_window.py`, `ui/sidebar.py`, `ui/pages/*` : barre latérale (logo si le fichier existe et se lit, six entrées, version), pile de pages, raccourcis Ctrl+1…6, section et géométrie mémorisées (géométrie invalide ignorée), taille minimale 960×600, pages « pas encore disponible » sans aucun contrôle.
+- `ui/qt_logging.py` (messages Qt vers le journal, avertissements de style repérés), `ui/smoke.py` (contrôles du smoke-test), `startup.py` (+ codes de sortie 4 et 5), `ui/theme/qss.py` (barre latérale, entrées, focus).
+
+**Décisions techniques :** le démarrage vérifie base et dossier de données avant tout import de Qt, donc les erreurs de démarrage donnent un message français et un code de sortie sans dépendre de Qt ; une erreur de démarrage n'expose jamais de détail technique (journal seulement) ; `--smoke-test` n'enregistre rien ; `run()` retire le gestionnaire de messages Qt qu'il a lui-même installé.
+
+**Défauts trouvés par mes propres contrôles, corrigés avant livraison :**
+- Minuteur de garde du smoke-test jamais annulé : avec Qt réel, dans un même processus (suite de tests), il aurait déclenché `exit(5)` dans la boucle d'un test suivant. Les minuteurs sont maintenant arrêtés à la sortie de `run()`.
+- `--help` s'affichait avant la mise en UTF-8 des flux : en cp1252 sur un tube Windows, sortie illisible pour un lecteur UTF-8. L'ordre est corrigé (preuve rouge puis verte).
+- Lint de feuille de style trop permissif : un `;` manquant fusionne deux déclarations sans être vu. Renforcé ; les sept fautes injectées sont détectées.
+
+**Résultats (Linux, Python 3.12.3, PySide6 ABSENT) :**
+- `python3 -m unittest discover -s tests -t .` → `Ran 247 tests … OK (skipped=36)` (172 existants + 75 nouveaux : 39 purs exécutés, 36 Qt ignorés).
+- `python3 -X dev -W default -m unittest discover -s tests -t .` → même résultat, 0 trace ou avertissement.
+- `python -m aniflow --help` → code 0 ; `python -m aniflow --smoke-test` sans PySide6 → message français, code 4, aucune trace.
+- Hygiène du dépôt sur l'index et absence de couleur codée en dur : OK.
+
+**Contrôles contre un FAUX PySide6 (jetable, non livré) :** 29 vérifications de mes chemins Python (fenêtre, navigation, persistance, smoke-test, erreurs de démarrage, fermeture de la connexion) et les 36 tests Qt s'exécutent contre lui. Il a servi à trouver le défaut des minuteurs ; il **ne valide pas Qt**.
+
+**Non exécuté / non vérifié :** tout Qt réel : les 36 tests `tests/ui/*`, le rendu (thème, barre de titre sombre, logo, focus, mise à l'échelle), les raccourcis sur clavier AZERTY, le comportement des flèches dans la barre latérale. Aucune tâche en arrière-plan n'est lancée dans E2/E3 (E6 les introduira) ; un test vérifie qu'aucun fil du pool global n'est actif. Aucun critère dépendant du PC de l'utilisateur n'est coché.
+
+**Prochaine tâche :** exécuter `docs/phase1/validation-e2-e3.md` sur le PC de l'utilisateur et renvoyer les résultats ; E4 (icônes Lucide) suivra.
+

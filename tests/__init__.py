@@ -14,3 +14,7 @@ if str(_SRC) not in sys.path:
 import logging
 
 logging.getLogger("aniflow").addHandler(logging.NullHandler())  # pas de bruit « lastResort » pendant les tests
+
+import os
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")  # tests d'interface hors écran ; une valeur déjà définie par l'utilisateur est respectée

@@ -69,6 +69,37 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 QScrollBar:horizontal { height: 10px; background: transparent; margin: 0; }
 QScrollBar::handle:horizontal { background: $border_strong; border-radius: 5px; min-width: 28px; }
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
+QFrame#sidebar {
+    background-color: $bg_deep;
+    border: none;
+    border-right: 1px solid $border;
+}
+QLabel[role="brand"] { font-size: ${title_px}px; font-weight: 700; }
+QLabel[role="headline"] { font-size: 16px; font-weight: 600; }
+QPushButton[nav="true"] {
+    background-color: transparent;
+    border: none;
+    border-left: 3px solid transparent;
+    border-radius: ${radius_control}px;
+    padding: 10px 14px;
+    text-align: left;
+    color: $text_muted;
+}
+QPushButton[nav="true"]:hover {
+    background-color: $surface_raised;
+    border-left: 3px solid transparent;
+    color: $text;
+}
+QPushButton[nav="true"]:checked {
+    background-color: $accent_dim;
+    border-left: 3px solid $accent_soft;
+    color: $text;
+    font-weight: 600;
+}
+QPushButton[nav="true"]:focus {
+    border: 2px solid $accent_soft;
+    padding: 9px 13px;
+}
 QToolTip {
     background-color: $surface_raised;
     color: $text;

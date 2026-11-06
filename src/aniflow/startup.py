@@ -27,6 +27,8 @@ log = logging.getLogger(__name__)
 EXIT_UNEXPECTED = 1
 EXIT_DATABASE = 2
 EXIT_DATA_FOLDER = 3
+EXIT_QT_MISSING = 4  # PySide6 introuvable ou inutilisable
+EXIT_SMOKE_TEST_FAILED = 5  # --smoke-test : un contrôle a échoué
 
 
 @dataclass(frozen=True)

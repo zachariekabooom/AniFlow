@@ -16,17 +16,17 @@ Légende : `[x]` vérifié par un test exécuté (résultat dans `DEV_LOG.md`) �
 - [x] Suite de tests sous Windows 11 / Python 3.12.10 — 123 tests exécutés, OK, 2 ignorés (résultat communiqué par l'utilisateur, sortie complète non jointe) ; les trois défauts de la première exécution (adresse IPv4-mappée, décodage 0xE9, WinError 10053) ont été corrigés par les correctifs 1.
 
 ## Phase 1 — Socle applicatif et design
-- [~] Structure Python/PySide6 modulaire, navigation et thème bleu marine sombre — paquet `src/aniflow`, jetons de design et feuille de style Qt livrés (contrastes WCAG testés) ; (E1) modèle de navigation pur livré et testé sous Linux ; fenêtre principale et navigation graphique non faites.
+- [~] Structure Python/PySide6 modulaire, navigation et thème bleu marine sombre — paquet `src/aniflow`, jetons de design, feuille de style Qt et modèle de navigation livrés ; **(E2/E3) point d'entrée `python -m aniflow`, fenêtre principale et navigation graphique livrés (code et tests écrits) : validation sous Windows en attente.**
 - [~] Design tokens, typographie, cartes, composants, icônes et états de chargement/erreur — jetons, typographie et styles de base faits ; composants, icônes et états non faits.
 - [x] Configuration, journaux et erreurs compréhensibles — `SettingsStore` validé (IA locale imposée dès la configuration), journal tournant, erreurs françaises par service.
 - [x] SQLite, migrations, persistance et sauvegarde/restauration — migrations atomiques avec sauvegarde préalable, restauration vérifiée avec copie de sécurité, cache HTTP persistant (19 tests).
-- [~] Tests ciblés de démarrage, navigation et persistance — persistance testée ; (E1) logique de navigation, de démarrage et de mémorisation section/géométrie testée sans Qt sous Linux ; démarrage graphique et navigation de l'interface non faits.
+- [~] Tests ciblés de démarrage, navigation et persistance — logique testée sans Qt (E1, validée sous Windows) ; **(E2/E3) tests du point d'entrée, du démarrage, de la fenêtre, des raccourcis et de la persistance écrits : parties pures exécutées sous Linux, tests Qt (`tests/ui/*`) à exécuter sous Windows.**
 
 Plan détaillé approuvé le 26/10/2026 : `docs/phase1/PLAN.md` (étapes E0 à E8). Un `[x]` n'est posé que sur résultat communiqué par l'utilisateur lorsqu'il dépend de son PC.
-- [~] E0 — clôture documentaire de la phase 0 : documents livrés ; reste à exécuter par l'utilisateur : fusion de `phase0-integration` dans `main`, tag `phase0-validee`, branche `phase1`.
-- [~] E1 — logique pure et garde-fous : code et tests livrés, exécutés sous Linux par l'assistant ; exécution sous Windows en attente.
-- [ ] E2 — démarrage de l'application (première fenêtre, thème, journal).
-- [ ] E3 — fenêtre principale, navigation, persistance.
+- [x] E0 — clôture documentaire de la phase 0 : documents appliqués (branche `phase1`, commit `0cef9ba`, déclaré par l'utilisateur) ; la gestion des branches n'est plus suivie ici.
+- [x] E1 — logique pure et garde-fous : 172 tests exécutés sous Windows 11 / Python 3.12.10, OK, 2 ignorés (communiqué par l'utilisateur, correctif SQLite compris).
+- [~] E2 — démarrage de l'application : livré (point d'entrée, thème Fusion + palette, journal et messages Qt, `LC_NUMERIC=C`, `--smoke-test`, erreurs de démarrage) ; tests Qt et validation visuelle sous Windows en attente (`docs/phase1/validation-e2-e3.md`).
+- [~] E3 — fenêtre principale, navigation, persistance : livré (barre latérale, six sections, Ctrl+1…6, section et géométrie mémorisées, pages honnêtes, taille minimale 960×600) ; tests Qt et validation visuelle sous Windows en attente.
 - [ ] E4 — icônes vectorielles (Lucide).
 - [ ] E5 — composants et états.
 - [ ] E6 — tâches en arrière-plan et erreurs.

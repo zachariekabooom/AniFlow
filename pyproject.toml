@@ -16,6 +16,9 @@ player = ["mpv>=1.0.8"]      # python-mpv (module « mpv ») ; nécessite libmpv
 dev = ["pytest>=8"]          # facultatif : les tests tournent aussi avec « python -m unittest »
 all = ["aniflow[ui,player]"]
 
+[project.scripts]
+aniflow = "aniflow.app:main"  # équivalent de « python -m aniflow »
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
